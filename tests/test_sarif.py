@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -356,7 +357,8 @@ def test_a_mapping_never_gets_a_file_location(
 ) -> None:
     a, _ = two_dirs
     monkeypatch.chdir(a)
-    (a / "<plan mapping>").write_text("{}")  # a file named like the origin
+    if os.name != "nt":  # Windows does not allow < or > in a file name
+        (a / "<plan mapping>").write_text("{}")  # a file named like the origin
     plan = json.loads((a / "plan.json").read_text())
     result = check(plan, tomllib.loads(CONTRACT.read_text()), tomllib.loads(CATALOG.read_text()))
     assert result.plan_source is None
