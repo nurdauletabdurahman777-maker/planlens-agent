@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "planlens-agent/run-diff/v1",
+  "title": "A comparison of two saved runs. Not an approval.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "diff_schema",
+    "engine",
+    "status",
+    "exit_code",
+    "no_new_violations",
+    "approval",
+    "candidate_status",
+    "candidate_passes",
+    "replay",
+    "baseline",
+    "candidate",
+    "context_changes",
+    "incomplete_reasons",
+    "plans",
+    "cases",
+    "findings",
+    "summary",
+    "notes"
+  ],
+  "properties": {
+    "diff_schema": {
+      "const": "planlens-agent/run-diff/v1"
+    },
+    "engine": {
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "no_new_violations",
+        "new_violations",
+        "incomplete_comparison",
+        "not_comparable"
+      ]
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "no_new_violations": {
+      "type": "boolean"
+    },
+    "approval": {
+      "const": false
+    },
+    "candidate_status": {
+      "enum": [
+        "passed",
+        "rejected",
+        "incomplete"
+      ]
+    },
+    "candidate_passes": {
+      "type": "boolean"
+    },
+    "replay": {
+      "type": "boolean"
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "file_sha256",
+        "suite",
+        "status",
+        "summary",
+        "labels",
+        "evaluator_sha256",
+        "engine_version"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "file_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "suite": {
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "rejected",
+            "incomplete"
+          ]
+        },
+        "summary": {
+          "type": "object"
+        },
+        "labels": {
+          "type": "object"
+        },
+        "evaluator_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "engine_version": {
+          "type": "string"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "file_sha256",
+        "suite",
+        "status",
+        "summary",
+        "labels",
+        "evaluator_sha256",
+        "engine_version"
+      ],
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "file_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "suite": {
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "rejected",
+            "incomplete"
+          ]
+        },
+        "summary": {
+          "type": "object"
+        },
+        "labels": {
+          "type": "object"
+        },
+        "evaluator_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "engine_version": {
+          "type": "string"
+        }
+      }
+    },
+    "context_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "baseline",
+          "candidate",
+          "why"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "suite",
+              "contract",
+              "catalog",
+              "evaluator",
+              "rules",
+              "report_schema"
+            ]
+          },
+          "baseline": {},
+          "candidate": {},
+          "why": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "incomplete_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "plans": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "changed",
+        "unchanged",
+        "unknown"
+      ],
+      "properties": {
+        "changed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unchanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compared",
+        "added",
+        "removed",
+        "not_comparable",
+        "still_rejected"
+      ],
+      "properties": {
+        "compared": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "added": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "sample"
+            ]
+          }
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "sample"
+            ]
+          }
+        },
+        "not_comparable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "sample"
+            ]
+          }
+        },
+        "still_rejected": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "sample"
+            ]
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new",
+        "resolved",
+        "unchanged",
+        "changed_evidence",
+        "ambiguous"
+      ],
+      "properties": {
+        "new": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "resolved": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "unchanged": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "changed_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "ambiguous": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new",
+        "resolved",
+        "unchanged",
+        "changed_evidence",
+        "ambiguous"
+      ],
+      "properties": {
+        "new": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolved": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unchanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changed_evidence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ambiguous": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

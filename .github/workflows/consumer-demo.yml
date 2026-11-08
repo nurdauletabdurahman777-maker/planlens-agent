@@ -1,0 +1,114 @@
+# Shows the gate as a consumer would use it. Started by hand only.
+#
+# `reject-demo` and `sarif-demo` FAIL ON PURPOSE: the candidates break the contract, and the
+# gate's failing status is kept. A red run of this workflow is the expected result.
+# Every plan is an authored example. The baselines here are generated inside the job so the
+# demo stands alone; a real baseline is an owner-reviewed file. See docs/ci.md.
+name: Consumer demo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pass-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.12.3"
+          enable-cache: false
+      - name: Install the built wheel
+        run: |
+          uv build --wheel --out-dir wheel
+          uv venv --python 3.14 demo
+          uv pip install --python demo/bin/python --no-deps wheel/*.whl
+          demo/bin/planlens-agent init release-basic project
+      - name: Gate on passing candidates
+        working-directory: project
+        run: ../demo/bin/planlens-agent suite run suite.toml --plans-dir candidates/v3 --output candidate.run.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: pass-demo-run
+          path: project/*.run.json
+          if-no-files-found: warn
+
+  reject-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.12.3"
+          enable-cache: false
+      - name: Install the built wheel
+        run: |
+          uv build --wheel --out-dir wheel
+          uv venv --python 3.14 demo
+          uv pip install --python demo/bin/python --no-deps wheel/*.whl
+          demo/bin/planlens-agent init release-basic project
+      - name: Create the demonstration baseline
+        working-directory: project
+        run: ../demo/bin/planlens-agent suite run suite.toml --plans-dir candidates/v3 --output baseline.run.json
+      - name: Gate on rejecting candidates (fails on purpose)
+        working-directory: project
+        run: ../demo/bin/planlens-agent suite run suite.toml --plans-dir candidates/v2 --output candidate.run.json
+      - name: Show what changed (also fails, because findings are new)
+        if: always()
+        working-directory: project
+        run: ../demo/bin/planlens-agent suite diff baseline.run.json candidate.run.json --output comparison.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: reject-demo-diagnostics
+          path: |
+            project/*.run.json
+            project/comparison.json
+          if-no-files-found: warn
+
+  sarif-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.12.3"
+          enable-cache: false
+      - name: Install the built wheel
+        run: |
+          uv build --wheel --out-dir wheel
+          uv venv --python 3.14 demo
+          uv pip install --python demo/bin/python --no-deps wheel/*.whl
+      - name: Check a rejected plan and write SARIF (fails on purpose)
+        run: |
+          demo/bin/planlens-agent check src/planlens_agent/templates/release_basic/plans/reversed-review.json \
+            --contract src/planlens_agent/templates/release_basic/contract.toml \
+            --catalog src/planlens_agent/templates/release_basic/catalog.toml \
+            --format sarif --output planlens.sarif --source-root .
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        if: always()
+        with:
+          sarif_file: planlens.sarif
+          category: planlens-agent-demo
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: sarif-demo-log
+          path: planlens.sarif
+          if-no-files-found: warn

@@ -1,0 +1,59 @@
+[build-system]
+# Pinned so that building the same source always uses the same backend; see PROVENANCE.md.
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
+[project]
+# PROVISIONAL distribution name. See docs/naming.md: "planlens" on PyPI belongs
+# to an unrelated project, and the research artifact already uses the console
+# command "planlens". This name has not been registered or reserved.
+name = "planlens-agent"
+version = "0.1.0.dev0"
+description = "Lint AI-agent plans before they run: check structured plans against owner-supplied workflow requirements."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+dependencies = []
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3",
+    "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "jsonschema>=4.18"]
+
+[project.scripts]
+planlens-agent = "planlens_agent.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/planlens_agent"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "docs", "scripts", "examples", ".github", "README.md", "LICENSE", "NOTICE",
+           "AUTHORS.md", "PROVENANCE.md", "CHANGELOG.md", "pyproject.toml",
+           "uv.lock"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# HTML/SVG markup is kept as whole, readable attribute strings rather than split mid-tag.
+"src/planlens_agent/inspector/__init__.py" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["planlens_agent"]
+known-local-folder = ["helpers", "test_acceptance"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+files = ["src/planlens_agent"]

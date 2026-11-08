@@ -1,0 +1,8 @@
+# Direct dependency of this recipe only. planlens-agent has no runtime dependencies,
+# and does not depend on LangGraph. Regenerate requirements.lock with:
+#   uv pip compile --universal --generate-hashes --python-version 3.11 \
+#     requirements.in -o requirements.lock
+langgraph==1.2.20
+typing-extensions==4.16.0
+# Only for test_gate.py.
+pytest==9.2.0

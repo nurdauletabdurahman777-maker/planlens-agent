@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "planlens-agent/fixtures/v1",
+  "title": "planlens-agent regression fixtures, v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "contract",
+    "catalog",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "planlens-agent/fixtures/v1"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "contract": {
+      "type": "string"
+    },
+    "catalog": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "plan",
+          "expect"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "plan": {
+            "type": "string"
+          },
+          "expect": {
+            "enum": [
+              "pass",
+              "reject",
+              "error"
+            ]
+          },
+          "expect_rules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

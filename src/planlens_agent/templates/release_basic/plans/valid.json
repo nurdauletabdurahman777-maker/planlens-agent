@@ -1,0 +1,12 @@
+{
+  "schema": "planlens-agent/plan/v1",
+  "title": "Release 2.4.0",
+  "steps": [
+    {"id": "build_rc", "action": "build", "description": "Build release candidate 2.4.0"},
+    {"id": "test_rc", "action": "unit_tests", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "scan_rc", "action": "security_scan", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "review", "action": "code_review", "description": "Reviewer signs off on the change"},
+    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "announce", "action": "notify"}
+  ]
+}

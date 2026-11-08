@@ -1,0 +1,39 @@
+{
+  "schema": "planlens-agent/plan/v1",
+  "title": "Authored candidate v2/legacy",
+  "steps": [
+    {
+      "id": "announce_start",
+      "action": "notify"
+    },
+    {
+      "id": "build_rc",
+      "action": "build"
+    },
+    {
+      "id": "test_rc",
+      "action": "unit_tests",
+      "inputs": {
+        "artifact": "build_rc.artifact"
+      }
+    },
+    {
+      "id": "review",
+      "action": "code_review"
+    },
+    {
+      "id": "deploy_prod",
+      "action": "deploy",
+      "inputs": {
+        "artifact": "build_rc.artifact"
+      }
+    },
+    {
+      "id": "scan_rc",
+      "action": "security_scan",
+      "inputs": {
+        "artifact": "build_rc.artifact"
+      }
+    }
+  ]
+}

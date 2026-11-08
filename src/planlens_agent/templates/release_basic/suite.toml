@@ -1,0 +1,33 @@
+# A suite of candidate plans. Authored examples, not output from a real planner.
+#
+# Cases are identified by `id`, and by `sample` when one case has several trials. Candidate
+# plans are read from `plans_dir`; `--plans-dir` reads another set, such as the output of a
+# changed planner. Every case listed is required.
+
+schema = "planlens-agent/suite/v1"
+id = "release-candidates"
+contract = "contract.toml"
+catalog = "catalog.toml"
+plans_dir = "candidates/v1"
+
+[[cases]]
+id = "standard"
+sample = "1"
+plan = "standard-1.json"
+
+[[cases]]
+id = "standard"
+sample = "2"
+plan = "standard-2.json"
+
+[[cases]]
+id = "hotfix"
+plan = "hotfix.json"
+
+[[cases]]
+id = "expedite"
+plan = "expedite.json"
+
+[[cases]]
+id = "legacy"
+plan = "legacy.json"
