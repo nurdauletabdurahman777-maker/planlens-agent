@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "planlens-agent/report/v1",
+  "title": "planlens-agent check report, v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_schema",
+    "engine",
+    "scope",
+    "verdict",
+    "exit_code",
+    "error_kind",
+    "passes_required_checks",
+    "plan_evaluated",
+    "inputs",
+    "summary",
+    "diagnostics",
+    "not_checked"
+  ],
+  "properties": {
+    "report_schema": {
+      "const": "planlens-agent/report/v1"
+    },
+    "engine": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ]
+    },
+    "scope": {
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "reject",
+        "error"
+      ]
+    },
+    "exit_code": {
+      "enum": [
+        0,
+        1,
+        2
+      ]
+    },
+    "error_kind": {
+      "enum": [
+        null,
+        "invalid_catalog",
+        "invalid_contract",
+        "invalid_plan",
+        "unsupported"
+      ]
+    },
+    "passes_required_checks": {
+      "type": "boolean"
+    },
+    "plan_evaluated": {
+      "type": "boolean"
+    },
+    "inputs": {
+      "type": "object",
+      "required": [
+        "plan",
+        "contract",
+        "catalog"
+      ],
+      "properties": {
+        "plan": {
+          "type": "object"
+        },
+        "contract": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "catalog": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "summary": {
+      "type": "object"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule_id",
+          "rule_version",
+          "category",
+          "title",
+          "message",
+          "observed",
+          "required",
+          "location",
+          "location_absent_reason",
+          "related_locations",
+          "contract_rule",
+          "explanation",
+          "suggestion",
+          "evidence"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string"
+          },
+          "rule_version": {
+            "type": "integer"
+          },
+          "category": {
+            "enum": [
+              "violation",
+              "invalid_plan",
+              "invalid_contract",
+              "invalid_catalog",
+              "unsupported"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "observed": {},
+          "required": {},
+          "location": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "document",
+              "path",
+              "step_id",
+              "step_index",
+              "source_span"
+            ],
+            "properties": {
+              "document": {
+                "enum": [
+                  "plan",
+                  "contract",
+                  "catalog"
+                ]
+              },
+              "path": {
+                "type": "string"
+              },
+              "step_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "step_index": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "description": "0-based position in steps; NOT a line number"
+              },
+              "source_span": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "required": [
+                  "line",
+                  "column"
+                ],
+                "properties": {
+                  "line": {
+                    "type": "integer"
+                  },
+                  "column": {
+                    "type": "integer"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "location_absent_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "related_locations": {
+            "type": "array",
+            "items": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "additionalProperties": false,
+              "required": [
+                "document",
+                "path",
+                "step_id",
+                "step_index",
+                "source_span"
+              ],
+              "properties": {
+                "document": {
+                  "enum": [
+                    "plan",
+                    "contract",
+                    "catalog"
+                  ]
+                },
+                "path": {
+                  "type": "string"
+                },
+                "step_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "step_index": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "description": "0-based position in steps; NOT a line number"
+                },
+                "source_span": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "required": [
+                    "line",
+                    "column"
+                  ],
+                  "properties": {
+                    "line": {
+                      "type": "integer"
+                    },
+                    "column": {
+                      "type": "integer"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "contract_rule": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "explanation": {
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "not_checked": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

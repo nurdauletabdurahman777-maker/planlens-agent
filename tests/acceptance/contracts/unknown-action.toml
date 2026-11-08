@@ -1,0 +1,46 @@
+# Release contract for the release-basic example.
+#
+# Owned by the application, not by the agent. A candidate plan cannot remove,
+# waive or replace anything here. Every rule is required.
+
+schema = "planlens-agent/contract/v1"
+id = "release-basic"
+version = "1.0.0"
+description = "A release must be built, tested, scanned and reviewed before it is deployed."
+
+# The catalog this contract was written for. A different catalog is refused.
+catalog = { id = "release-basic", version = "1.0.0" }
+
+# Every plan must contain at least one step of each of these actions.
+required_actions = ["build", "unit_tests", "security_scan", "code_review", "canary_rollout", "deploy"]
+
+# kind = "prerequisite": every step of `action` needs an earlier step of
+# `requires_prior`. Actions with no rule between them may appear in either order.
+[[rules]]
+id = "review-before-deploy"
+kind = "prerequisite"
+action = "deploy"
+requires_prior = "code_review"
+because = "A release may not be deployed before its code review."
+
+[[rules]]
+id = "tests-before-deploy"
+kind = "prerequisite"
+action = "deploy"
+requires_prior = "unit_tests"
+because = "A release may not be deployed before its unit tests run."
+
+[[rules]]
+id = "scan-before-deploy"
+kind = "prerequisite"
+action = "deploy"
+requires_prior = "security_scan"
+because = "A release may not be deployed before its security scan runs."
+
+# kind = "same_artifact": these inputs must all refer to one planned artifact,
+# meaning the same producer step and output.
+[[rules]]
+id = "deploy-what-was-verified"
+kind = "same_artifact"
+inputs = ["unit_tests.artifact", "security_scan.artifact", "deploy.artifact"]
+because = "The artifact that is deployed must be the one that was tested and scanned."

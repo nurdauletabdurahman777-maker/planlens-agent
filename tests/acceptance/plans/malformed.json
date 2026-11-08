@@ -1,0 +1,7 @@
+{
+  "schema": "planlens-agent/plan/v1",
+  "steps": [
+    {"id": "build_rc", "action": "build"},
+    {"id": "test_rc", "action": "unit_tests" "inputs": {}}
+  ]
+}

@@ -1,0 +1,158 @@
+# Acceptance examples from the PlanLens Open-Source Standard, section 7.
+#
+# These are AUTHORED software fixtures written to exercise the checker. They
+# are not observations of any model or agent, and passing them says nothing
+# about how often real plans fail.
+#
+# Paths are relative to this file. "policy" defaults to the release-basic
+# template's contract and catalog.
+#
+# rules        exact count of findings per rule id (a dropped cause fails)
+# locations    findings that must point at a specific place
+# absent       rule ids whose finding must have NO location, with a reason
+
+[defaults]
+contract = "../../src/planlens_agent/templates/release_basic/contract.toml"
+catalog = "../../src/planlens_agent/templates/release_basic/catalog.toml"
+
+[[cases]]
+standard = 1
+name = "valid-release"
+plan = "../../src/planlens_agent/templates/release_basic/plans/valid.json"
+verdict = "pass"
+rules = {}
+
+[[cases]]
+standard = 2
+name = "independent-checks-in-another-order"
+plan = "../../src/planlens_agent/templates/release_basic/plans/valid-alternate-order.json"
+verdict = "pass"
+rules = {}
+
+[[cases]]
+standard = 3
+name = "complete-plan-deploys-before-review"
+plan = "../../src/planlens_agent/templates/release_basic/plans/reversed-review.json"
+verdict = "reject"
+rules = { "plan/prerequisite-order" = 1 }
+locations = [{ rule = "plan/prerequisite-order", path = "/steps/3", step_id = "deploy_prod" }]
+
+[[cases]]
+standard = 4
+name = "tests-and-deploy-use-different-artifacts"
+plan = "../../src/planlens_agent/templates/release_basic/plans/artifact-mismatch.json"
+verdict = "reject"
+rules = { "plan/artifact-identity" = 1 }
+locations = [{ rule = "plan/artifact-identity", path = "/steps/5/inputs/artifact", step_id = "deploy_prod" }]
+
+[[cases]]
+standard = 5
+name = "compound-missing-unknown-and-reversed"
+plan = "plans/compound.json"
+verdict = "reject"
+rules = { "plan/missing-required-action" = 1, "plan/unknown-action" = 1, "plan/prerequisite-order" = 2 }
+locations = [
+  { rule = "plan/unknown-action", path = "/steps/4/action", step_id = "migrate" },
+  { rule = "plan/prerequisite-order", path = "/steps/2", step_id = "deploy_prod" },
+]
+absent = ["plan/missing-required-action"]
+
+[[cases]]
+standard = 6
+name = "cyclic-contract"
+plan = "../../src/planlens_agent/templates/release_basic/plans/valid.json"
+contract = "contracts/cyclic.toml"
+verdict = "error"
+error_kind = "invalid_contract"
+rules = { "contract/cycle" = 1 }
+locations = [{ rule = "contract/cycle", path = "/rules/0", document = "contract" }]
+
+[[cases]]
+standard = 6
+name = "contract-requires-an-action-the-catalog-lacks"
+plan = "../../src/planlens_agent/templates/release_basic/plans/valid.json"
+contract = "contracts/unknown-action.toml"
+verdict = "error"
+error_kind = "invalid_contract"
+rules = { "contract/unknown-action" = 1 }
+locations = [{ rule = "contract/unknown-action", path = "/required_actions/4", document = "contract" }]
+
+[[cases]]
+standard = 6
+name = "contract-pinned-to-another-catalog"
+plan = "../../src/planlens_agent/templates/release_basic/plans/valid.json"
+contract = "contracts/catalog-mismatch.toml"
+verdict = "error"
+error_kind = "invalid_contract"
+rules = { "contract/catalog-mismatch" = 1 }
+
+[[cases]]
+standard = 7
+name = "unresolved-references"
+plan = "plans/unresolved-reference.json"
+verdict = "reject"
+rules = { "plan/unresolved-reference" = 2 }
+locations = [
+  { rule = "plan/unresolved-reference", path = "/steps/1/inputs/artifact", step_id = "test_rc" },
+  { rule = "plan/unresolved-reference", path = "/steps/4/inputs/artifact", step_id = "deploy_prod" },
+]
+
+[[cases]]
+standard = 7
+name = "artifact-consumed-before-it-is-produced"
+plan = "plans/reference-before-producer.json"
+verdict = "reject"
+rules = { "plan/reference-before-producer" = 1 }
+locations = [{ rule = "plan/reference-before-producer", path = "/steps/0/inputs/artifact", step_id = "test_rc" }]
+
+[[cases]]
+standard = 7
+name = "duplicate-step-id"
+plan = "plans/duplicate-step-id.json"
+verdict = "error"
+error_kind = "invalid_plan"
+rules = { "plan/duplicate-step-id" = 1 }
+locations = [{ rule = "plan/duplicate-step-id", path = "/steps/2/id", step_id = "check" }]
+
+[[cases]]
+standard = 7
+name = "malformed-candidate"
+plan = "plans/malformed.json"
+verdict = "error"
+error_kind = "invalid_plan"
+rules = { "plan/malformed" = 1 }
+source_span = { line = 5, column = 46 }
+
+[[cases]]
+standard = 8
+name = "candidate-tries-to-waive-review"
+plan = "plans/policy-override.json"
+verdict = "reject"
+rules = { "plan/policy-override" = 2, "plan/missing-required-action" = 1, "plan/prerequisite-order" = 1 }
+locations = [
+  { rule = "plan/policy-override", path = "/waive" },
+  { rule = "plan/policy-override", path = "/steps/3/approved", step_id = "deploy_prod" },
+]
+absent = ["plan/missing-required-action"]
+
+# Standard example 9 (plan changes after validation) needs an execution step,
+# so it is covered by tests/test_runner.py rather than by a static plan.
+
+[[cases]]
+standard = 10
+name = "contract-requires-an-unsupported-rule"
+plan = "../../src/planlens_agent/templates/release_basic/plans/valid.json"
+contract = "contracts/unsupported-rule.toml"
+verdict = "error"
+error_kind = "unsupported"
+rules = { "contract/unsupported-rule" = 1 }
+note = "Negative control: the same plan passes under the template contract (case valid-release)."
+
+[[cases]]
+standard = 10
+name = "plan-asks-for-unsupported-semantics"
+plan = "plans/unsupported-semantics.json"
+verdict = "error"
+error_kind = "unsupported"
+rules = { "plan/unsupported-semantics" = 1 }
+locations = [{ rule = "plan/unsupported-semantics", path = "/steps/4/when", step_id = "deploy_prod" }]

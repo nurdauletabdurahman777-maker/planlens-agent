@@ -1,0 +1,11 @@
+{
+  "schema": "planlens-agent/plan/v1",
+  "title": "Authored: missing review, an unknown action, and deploy before the scan",
+  "steps": [
+    {"id": "build_rc", "action": "build"},
+    {"id": "test_rc", "action": "unit_tests", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "scan_rc", "action": "security_scan", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "migrate", "action": "migrate_database"}
+  ]
+}

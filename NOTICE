@@ -1,0 +1,16 @@
+planlens-agent (provisional name)
+
+This software is licensed under the Apache License, Version 2.0. See LICENSE.
+
+Copyright holder(s): pending confirmation by the project owners. See
+AUTHORS.md. This notice must be completed before any public release.
+
+planlens-agent is a separate product. It descends conceptually from the PlanLens
+research artifact (https://github.com/nurdauletabdurahman777-maker/planlens-icdm2026,
+Copyright 2026 Nurdaulet Abdrakhman and Daniyal Kozyrev, Apache-2.0). No source
+code was copied from that artifact; only the Apache-2.0 license text was taken
+from it. See PROVENANCE.md.
+
+tests/data/sarif/sarif-schema-2.1.0.json is an unmodified OASIS work product under the
+OASIS notice in tests/data/sarif/NOTICE.md, not under the Apache License. It is used by
+tests only and is not part of the installed package.

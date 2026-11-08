@@ -1,0 +1,33 @@
+# Regression fixtures for release-basic. Authored examples, not observed agent output.
+#
+# "expect" is the verdict this contract should produce; "expect_rules" is the
+# exact set of rule ids. A met expectation for a rejected plan does not make
+# that plan runnable.
+
+schema = "planlens-agent/fixtures/v1"
+contract = "contract.toml"
+catalog = "catalog.toml"
+
+[[cases]]
+name = "valid-release"
+plan = "plans/valid.json"
+expect = "pass"
+expect_rules = []
+
+[[cases]]
+name = "independent-checks-in-another-order"
+plan = "plans/valid-alternate-order.json"
+expect = "pass"
+expect_rules = []
+
+[[cases]]
+name = "deploy-before-review"
+plan = "plans/reversed-review.json"
+expect = "reject"
+expect_rules = ["plan/prerequisite-order"]
+
+[[cases]]
+name = "deploys-an-untested-build"
+plan = "plans/artifact-mismatch.json"
+expect = "reject"
+expect_rules = ["plan/artifact-identity"]

@@ -1,0 +1,12 @@
+{
+  "schema": "planlens-agent/plan/v1",
+  "title": "Release 2.4.0 - tests and scan use one build, deploy uses another",
+  "steps": [
+    {"id": "build_rc", "action": "build", "description": "Release candidate"},
+    {"id": "build_hotfix", "action": "build", "description": "Rebuild with an untested patch"},
+    {"id": "test_rc", "action": "unit_tests", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "scan_rc", "action": "security_scan", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "review", "action": "code_review"},
+    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_hotfix.artifact"}}
+  ]
+}
