@@ -7,9 +7,9 @@ in the package. Every plan used is authored.
 | | |
 | --- | --- |
 | Package | `dist/planlens-agent-private-pilot.zip` |
-| SHA-256 | `624a56cb2d7b2d70266227f0200f792b46869234b530053ad79aa1996ad5400c` |
-| Bytes | 180097 |
-| Built from commit | `7ab3217d74132f520b56a3f4310b2a755b122af5` |
+| SHA-256 | `30008438269c15c2dd29d0338cb213bcfa9a68b702eedc2c728c770e056372a0` |
+| Bytes | 180162 |
+| Built from commit | `5cbc9d203cc1d222cd0ba2fd8f97cf308541c822` |
 | Platform | macOS 26.6.2 arm64 only |
 | Python | CPython 3.14.7 and 3.11.15 (uv-managed) |
 
