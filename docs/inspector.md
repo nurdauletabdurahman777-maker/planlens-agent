@@ -107,4 +107,4 @@ Every input string is treated as untrusted:
   makes a long page and a large file: about 1.5 MB for 726 steps.
 - Only the first four group labels have their own colour; the rest are grey and
   distinguished by their label.
-- Rendered and checked in Chrome only. See `B1_REVIEW.md`.
+- Rendered and checked in Chrome only.

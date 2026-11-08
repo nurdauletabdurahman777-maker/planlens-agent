@@ -287,8 +287,7 @@ automatically. Regression fixtures for the checker itself: `planlens-agent regre
 fixtures.toml`.
 
 The workflows in [`.github/workflows`](.github/workflows) and their exact local commands are
-in [docs/ci.md](docs/ci.md). **They have not run on a hosted service**, because no remote
-exists yet.
+in [docs/ci.md](docs/ci.md), with what has run on hosted runners.
 
 SARIF 2.1.0 for tools that read it (validated against the official schema; ingestion
 by GitHub code scanning has **not** been tested, see [docs/sarif.md](docs/sarif.md)):
@@ -314,9 +313,10 @@ ends in exit 2.
 | | |
 | --- | --- |
 | verified locally | macOS 26.6.2 arm64; CPython 3.14.7 and 3.11.15; wheel installed outside the checkout; suite journey and LangGraph 1.2.20 recipe. Inspector rendered in Chrome 156 (not re-rendered in B2; its output is byte-identical to B1) |
-| verified by independent review of B2-r2, not of later repairs | Linux x86_64, CPython 3.12.14 |
-| prepared, not run | hosted CI, the consumer demo workflow, SARIF upload |
-| not yet verified | suites and the recipe on Linux; Windows; CPython 3.12 and 3.13 for B2; other browsers; SARIF ingestion by any service |
+| verified by independent review of B2-r3, not of later commits | Linux x86_64, CPython 3.12.14 |
+| verified on GitHub-hosted runners | Ubuntu, macOS arm64 and Windows on CPython 3.11 to 3.14, the built-wheel journey, the LangGraph recipe on Ubuntu, and the consumer demo. See [docs/ci.md](docs/ci.md) |
+| attempted, refused | SARIF upload: code scanning is not enabled for the private repository used so far |
+| not yet verified | the recipe on Windows; browsers other than Chrome; SARIF ingestion by any service |
 | not supported | parallel/DAG plans, loops, conditions, natural-language plans, runtime evidence of execution or approval, plugins, signed run files |
 | evidence of use | none yet. No external user has tried it, and no real planner or model output has been run through it |
 

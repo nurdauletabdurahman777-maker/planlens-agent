@@ -168,7 +168,7 @@ say. Replaying files is not evidence about a model.
 ## Observed examples
 
 From `scripts/journey.py`, run against the installed wheel using the authored
-`release-basic` candidates. The full transcript is in `review/b2/`.
+`release-basic` candidates.
 
 | scenario | command result |
 | --- | --- |
