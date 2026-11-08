@@ -72,8 +72,10 @@ the version is PEP 440 (`0.1.0.dev0`), which is not SemVer.
 - **Verified:** logs validate against the official OASIS SARIF 2.1.0 schema. An
   unmodified copy is in `tests/data/sarif/`, used by tests only and never fetched; its
   source, hash and licence notice are in `NOTICE.md` there.
-- **Prepared, not run:** the `sarif-demo` job in `.github/workflows/consumer-demo.yml`
-  uploads a log with `github/codeql-action/upload-sarif`. See [ci.md](ci.md).
+- **Attempted, refused:** the `sarif-demo` job in `.github/workflows/consumer-demo.yml` passes
+  the upload action's validation, then GitHub answers `Code scanning is not enabled for this
+  repository` on the private repository used so far. Nothing has been processed or displayed.
+  See [ci.md](ci.md).
 - **Not verified:** ingestion by GitHub code scanning or any other service, and
   pull-request annotations. Schema validity does not show that a service accepts a
   log or displays it usefully. Services commonly expect a file and line for each

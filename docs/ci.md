@@ -1,8 +1,8 @@
 # CI
 
-**Nothing here has run on a hosted service.** No remote exists. The workflows are prepared
-and statically checked; the commands below were run locally. Hosted CI and SARIF ingestion
-stay unverified until they run.
+Hosted runs below are on GitHub-hosted runners in a private repository, first verified on
+2026-11-08. Every plan is an authored example. **SARIF ingestion by code scanning remains
+unverified**: see the table.
 
 ## Local commands
 
@@ -23,21 +23,27 @@ with its exit status. `ruff format` also covers Python blocks in Markdown.
 
 ## Verification status
 
-| stage | local (macOS 26.6.2 arm64) | hosted |
-| --- | --- | --- |
-| lint | run | pending: Ubuntu |
-| test | run: CPython 3.11.15, 3.14.7 | pending: Ubuntu, macOS, Windows on 3.11 to 3.14 |
-| package | run: 3.11, 3.14 | pending: Ubuntu on 3.11, 3.14 |
-| journey | run: 3.14 | pending: Ubuntu, macOS, Windows on 3.14 |
-| recipe | run: 3.11, 3.14, LangGraph 1.2.20 | pending: Ubuntu on 3.11, 3.14 |
-| consumer demo | commands run by hand, exit statuses matched | pending |
-| SARIF upload | SARIF generated; upload not attempted | pending |
+| stage | hosted | Python | result |
+| --- | --- | --- | --- |
+| lint | Ubuntu 26.04 | 3.14 | pass |
+| test | Ubuntu 26.04 | 3.11.15, 3.12.13, 3.13.15, 3.14.4 | 649 passed, 6 skipped each |
+| test | macOS 26 arm64 | 3.11.9, 3.12.10, 3.13.17, 3.14.10 | 655 passed each |
+| test | Windows Server 2025 | 3.11.9, 3.12.10, 3.13.17, 3.14.10 | 655 passed each |
+| package, installed wheel | Ubuntu 26.04 | 3.11, 3.14 | 649 passed, 6 skipped |
+| journey, built wheel | Ubuntu, macOS, Windows | 3.14 | 61 of 61 |
+| recipe, LangGraph 1.2.20 | Ubuntu 26.04 | 3.11, 3.14 | 31 passed; journey 67 of 67 |
+| consumer demo | Ubuntu 26.04 | 3.14 | passing gate passes; rejecting gate fails as intended |
+| SARIF upload | Ubuntu 26.04 | 3.14 | **refused**: code scanning is not enabled for this private repository |
+
+The 6 Ubuntu skips are the case-variant tests, which need a case-insensitive filesystem.
+The recipe was run on hosted Ubuntu only, and macOS arm64 locally; it has not run on Windows.
 
 ## Workflow safety
 
 Enforced by `tests/test_ci_files.py`:
 
-- `permissions: contents: read` by default; `security-events: write` on the SARIF job alone;
+- `permissions: contents: read` by default; `security-events: write` and `actions: read` on the
+  SARIF job alone (`upload-sarif` reads the workflow run on private repositories);
 - actions pinned to full commits; checkouts do not keep credentials;
 - no `pull_request_target`, `continue-on-error`, `|| true`, secrets or provider credentials;
 - diagnostic uploads use `if: always()`, so a failing gate keeps its evidence and stays failed;
@@ -106,5 +112,5 @@ jobs:
           path: "*.run.json"
 ```
 
-This template has not been run. Gate on `suite run`: `suite diff` can exit 0 while the
+This template has not been run as written. Gate on `suite run`: `suite diff` can exit 0 while the
 candidate is still rejected.

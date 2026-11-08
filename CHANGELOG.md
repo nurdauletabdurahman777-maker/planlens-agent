@@ -45,6 +45,13 @@ Fixed after independent review of B2-r2 (B2-r3)
   now refuse, with exit 2, an output that is the plan, contract, catalog, suite manifest or a
   candidate in use, including through other spellings, symlinks and hard links.
 
+Fixed on hosted CI
+
+- `.gitattributes` keeps LF on every platform and leaves the vendored OASIS schema untouched.
+  Windows checkouts had rewritten its line endings.
+- The SARIF demo job has the `actions: read` permission that `upload-sarif` needs on private
+  repositories.
+
 Unchanged
 
 - `check` and `inspect` output: byte-identical to the previous checkpoint's wheel across the
@@ -74,7 +81,7 @@ Added
   exact approved snapshot.
 - `release-basic` template, regression fixtures, JSON Schemas.
 
-Fixed during the checkpoint A source review (see `A_REVIEW.md`)
+Fixed during the checkpoint A source review
 
 - An integer longer than 4,300 digits in a JSON or TOML document made `check()`
   raise `ValueError`; through the CLI it was reported as an internal error with
@@ -82,7 +89,7 @@ Fixed during the checkpoint A source review (see `A_REVIEW.md`)
 - Excessive nesting was reported as `malformed` or `schema` depending on which
   depth check fired first. It is now always `<doc>/limit`.
 
-Fixed after the second source review (see `A_REVIEW.md`, round 2)
+Fixed after the second source review
 
 - A validated policy exposed mutable dicts, so clearing an action's inputs made a
   rejected plan pass under the same digest. Catalog and contract are now
@@ -97,7 +104,7 @@ Fixed after the second source review (see `A_REVIEW.md`, round 2)
   whose inputs cannot be bootstrapped, not only types no action outputs.
 - `uv.lock` is included in the sdist.
 
-Added in checkpoint B1 (see `B1_REVIEW.md`)
+Added in checkpoint B1
 
 - `planlens-agent inspect PLAN --output FILE`: a self-contained HTML report of one
   check, built from an explicit view model (`build_view`, `render_html`).
@@ -107,7 +114,7 @@ Added in checkpoint B1 (see `B1_REVIEW.md`)
 - `Policy.catalog_origin` and `Policy.contract_origin`, so a syntax error in a policy
   document can be located in its file.
 
-Fixed after the B1 source review (see `B1_REVIEW.md`, section 7)
+Fixed after the B1 source review
 
 - More than 702 distinct artifact references in one report made `build_view` raise
   `IndexError`, so `inspect` gave no report. Group labels now continue past ZZ with no
