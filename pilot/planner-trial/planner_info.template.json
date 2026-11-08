@@ -1,0 +1,12 @@
+{
+  "provider": null,
+  "model": null,
+  "model_version_or_date": null,
+  "endpoint_or_deployment": null,
+  "temperature": null,
+  "max_output_tokens": null,
+  "seed": null,
+  "system_prompt": null,
+  "other_settings": {},
+  "how_this_information_is_known": null
+}
