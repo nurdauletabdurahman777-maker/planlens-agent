@@ -82,9 +82,9 @@ $ open report.html
 
 On Linux use `xdg-open report.html`. The report is one HTML file and loads nothing from the network.
 
-Read it from the top: the verdict, then the finding with its rule and message, then the steps it
-involves. Select a finding to highlight those steps. Each finding ends with what to change next.
-To try a change, copy the plan to `my-plan.json`, edit the copy, and run
+Start with the verdict at the top right, then the finding on the left: its message, what was
+observed and required, and a **Next** row saying what to change. The proposed sequence shows the
+steps involved. Select a finding to highlight them. To try a change, copy the plan to `my-plan.json`, edit the copy, and run
 `planlens-agent check my-plan.json`. Leave `plans/` as it is.
 
 ## 6. Use it from Python
