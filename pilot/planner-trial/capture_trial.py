@@ -138,6 +138,14 @@ def _raw_record(capture: Capture, source: Any) -> tuple[str, bytes | None, str]:
     return "raw_output.txt", repr(raw).encode(), f"repr of a {type(raw).__name__}"
 
 
+def _identity_status(info: Any) -> str:
+    if info is None:
+        return "not supplied"
+    if isinstance(info, dict) and not any(v not in (None, "", {}, []) for v in info.values()):
+        return "not known: every field is null"
+    return "supplied by the operator, not verified"
+
+
 def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -241,9 +249,7 @@ def main(argv: list[str] | None = None) -> int:
     _write_json(
         a.out / "planner.json",
         {
-            "identity_status": "supplied by the operator, not verified"
-            if info is not None
-            else "not supplied",
+            "identity_status": _identity_status(info),
             "identity": info,
         },
     )

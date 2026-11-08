@@ -314,4 +314,4 @@ def test_a_saved_response_is_preserved_whatever_it_is(
     assert (out / "raw_output.txt").read_text() == response
     assert (out / "request.txt").read_bytes() == (FIRST / "request.txt").read_bytes()
     assert (out / "policy/contract.toml").read_bytes() == (FIRST / "contract.toml").read_bytes()
-    assert load(out, "planner.json")["identity_status"] == "supplied by the operator, not verified"
+    assert load(out, "planner.json")["identity_status"] == "not known: every field is null"
