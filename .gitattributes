@@ -1,0 +1,5 @@
+# Check out the same bytes on every platform. The evaluator digest hashes source files, and
+# the vendored OASIS schema must stay byte-identical to the official file.
+* text=auto eol=lf
+*.png binary
+tests/data/sarif/sarif-schema-2.1.0.json -text
