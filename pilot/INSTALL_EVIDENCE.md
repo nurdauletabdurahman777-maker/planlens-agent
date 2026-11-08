@@ -7,9 +7,9 @@ in the package. Every plan used is authored.
 | | |
 | --- | --- |
 | Package | `dist/planlens-agent-private-pilot.zip` |
-| SHA-256 | `dfa378a0724288041ef66ef91303933576a8653a376ce03b2deafb0e95d818a1` |
-| Bytes | 173679 |
-| Built from commit | `b322bdaac3feec923e95b644c4a0e4cdcf4c872e` |
+| SHA-256 | `624a56cb2d7b2d70266227f0200f792b46869234b530053ad79aa1996ad5400c` |
+| Bytes | 180097 |
+| Built from commit | `7ab3217d74132f520b56a3f4310b2a755b122af5` |
 | Platform | macOS 26.6.2 arm64 only |
 | Python | CPython 3.14.7 and 3.11.15 (uv-managed) |
 
@@ -62,6 +62,13 @@ Run from the package with `--origin authored-example`. No planner was involved, 
 | authored `valid.json` | 0 | `executed` | 6 |
 | authored `artifact-mismatch.json` | 1 | `rejected`, `plan/artifact-identity` | 0 |
 | authored prose, not JSON | 2 | `error`, raw output kept | 0 |
+
+## First-trial files
+
+`planner-trial/first-trial/` holds the frozen request and policy. No model has been called. The exact
+capture command from its README was run once with an authored stand-in response and
+`--origin authored-example` in place of `--origin real-planner`: exit 1, `rejected`,
+`plan/prerequisite-order`.
 
 ## Not tried
 
