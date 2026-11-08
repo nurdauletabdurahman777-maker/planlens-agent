@@ -45,15 +45,19 @@ what you wrote above.
 
 ## Task 4: describe one small workflow of your own
 
-Pick something small you actually do, with three to six steps and at least one rule such as "X must
-happen before Y". You can copy and edit `catalog.toml`, `contract.toml` and a plan from `demo/`.
-You do not need a model or agent. Write the plans by hand.
+Keep this deliberately small: **three or four actions and one "X must happen before Y" rule**.
+You do not need artifacts, a model or an agent. Write the plan by hand.
 
-- **Start:** when you begin writing or editing your own files.
-- **Do:** write a catalog, a contract, and at least one plan you expect to pass or to be rejected.
-  Limit: 45 minutes.
-- **Stop:** when `planlens-agent validate-policy` exits 0 **and** `planlens-agent check` on your
-  plan gives the result you expected.
+Before the clock starts, and untimed: choose something you actually do, and write its description
+and its one rule on the form.
+
+- **Start:** when you create or open the first of your own files. You can copy and edit
+  `catalog.toml`, `contract.toml` and a plan from `demo/`.
+- **Do:** write a catalog, a contract and one plan. Before you first run `check`, write on the form
+  whether your plan should pass or be rejected.
+- **Stop:** when `planlens-agent validate-policy` exits 0 **and** `planlens-agent check` on your plan
+  gives the result you wrote down. If it does not, keep going: the clock keeps running.
+- **Limit:** 45 minutes. If you reach it, stop and mark the task not finished.
 
 Pass your own files with `--contract` and `--catalog`, or run from their folder. Count how many times
 you ran the tool, and note every message you did not understand.

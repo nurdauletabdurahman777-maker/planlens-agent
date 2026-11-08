@@ -1,7 +1,10 @@
 # Real-planner trial
 
-Prepared, not run. **No planner has been selected or authorized for external calls.** This folder
+Prepared, not run. **No model has been called and no planner output has been received.** This folder
 is for the pilot owner; testers do not need it.
+
+The first trial is fully specified in [`first-trial/`](first-trial/README.md). The rest of this page
+describes the tool in general.
 
 `capture_trial.py` sends one planner output through the existing LangGraph gate and keeps a record
 of it. The tool never calls a model itself, and a planner runs only if you pass `--planner`. Handlers

@@ -88,7 +88,7 @@ def test_uploads_survive_a_failure() -> None:
 
 def test_ci_covers_every_local_stage_and_a_real_matrix() -> None:
     text = CI.read_text(encoding="utf-8")
-    for stage in ("lint", "test", "package", "journey", "recipe"):
+    for stage in ("lint", "test", "package", "journey", "recipe", "pilot"):
         assert f"scripts/ci_local.py {stage}" in text
     assert "[ubuntu-latest, macos-latest, windows-latest]" in text
     assert '["3.11", "3.12", "3.13", "3.14"]' in text

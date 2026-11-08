@@ -2,7 +2,7 @@
 
     python scripts/ci_local.py STAGE [--python VERSION] [--log FILE]
 
-Stages: lint, test, package, journey, recipe, all. Needs uv on PATH. Virtual environments
+Stages: lint, test, package, journey, recipe, pilot, all. Needs uv on PATH. Virtual environments
 and build output go to a temporary directory outside the checkout. Any failing command
 stops the stage with its exit status.
 """
@@ -109,8 +109,7 @@ def recipe(python: str, tmp: Path, log: Path | None) -> None:
     py = env / BIN / f"python{EXE}"
     sh("uv", "pip", "install", "-q", "--python", py, "--require-hashes",
        "-r", RECIPE / "requirements.lock")  # fmt: skip
-    sh(py, "-m", "pytest", RECIPE / "test_gate.py", PILOT_TRIAL / "test_capture_trial.py",
-       "-q", "-p", "no:cacheprovider",
+    sh(py, "-m", "pytest", RECIPE / "test_gate.py", "-q", "-p", "no:cacheprovider",
        cwd=tmp, env={"PYTHONDONTWRITEBYTECODE": "1"})  # fmt: skip
     args: list[str | Path] = [
         py, ROOT / "scripts" / "journey.py",
@@ -122,7 +121,23 @@ def recipe(python: str, tmp: Path, log: Path | None) -> None:
     sh(*args, cwd=tmp)
 
 
-STAGES = {"lint": lint, "test": test, "package": package, "journey": journey, "recipe": recipe}
+def pilot(python: str, tmp: Path, log: Path | None) -> None:
+    env = wheel_env(python, tmp, build_wheel(tmp), "pilot-env")
+    py = env / BIN / f"python{EXE}"
+    sh("uv", "pip", "install", "-q", "--python", py, "--require-hashes",
+       "-r", RECIPE / "requirements.lock")  # fmt: skip
+    sh(py, "-m", "pytest", PILOT_TRIAL / "test_capture_trial.py", "-v", "-p", "no:cacheprovider",
+       cwd=tmp, env={"PYTHONDONTWRITEBYTECODE": "1"})  # fmt: skip
+
+
+STAGES = {
+    "lint": lint,
+    "test": test,
+    "package": package,
+    "journey": journey,
+    "recipe": recipe,
+    "pilot": pilot,
+}
 
 
 def main() -> None:

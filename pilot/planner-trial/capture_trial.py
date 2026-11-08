@@ -153,6 +153,7 @@ def _arguments(argv: list[str] | None) -> argparse.Namespace:
     source.add_argument("--planner", help="FILE.py:function taking the request, returning output")
     parser.add_argument("--convert", type=Path, help="FILE.py defining convert(raw) -> mapping")
     parser.add_argument("--planner-info", type=Path, help="identity and settings actually known")
+    parser.add_argument("--label", default=None, help="what this trial is, stored as given")
     parser.add_argument("--out", required=True, type=Path, help="new directory for this trial")
     return parser.parse_args(argv)
 
@@ -253,6 +254,7 @@ def main(argv: list[str] | None = None) -> int:
             "captured_at_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "origin": a.origin,
             "origin_status": "declared by the operator, not verified",
+            "trial_label": a.label,
             "planner_source": "planner callable" if a.planner else "saved response file",
             "raw_output": {"file": raw_name if raw_content is not None else None, "kind": raw_kind},
             "status": state["status"],

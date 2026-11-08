@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -231,3 +232,86 @@ def test_the_gate_reads_the_preserved_policy_copies(
     out = tmp_path / "trial"
     assert main([*base, *saved(tmp_path, VALID), "--out", str(out)]) == 0
     assert seen == [(out / "policy/contract.toml", out / "policy/catalog.toml")]
+
+
+# --- the frozen first-trial files ---------------------------------------------------
+FIRST = Path(__file__).parent / "first-trial"
+TASK = (
+    "Create a sequential production-release plan for version 2.4.0 using the supplied action "
+    "catalog and owner contract. Include the required build, unit-test, security-scan, code-review "
+    "and deployment actions. Deployment must use the same planned artifact as testing and "
+    "scanning. Satisfy every supplied requirement. Return only JSON conforming to "
+    "planlens-agent/plan/v1."
+)
+SCHEMA = Path(str(resources.files("planlens_agent").joinpath("schemas", "plan.v1.schema.json")))
+
+
+def frozen(base: list[str]) -> list[str]:
+    args = list(base)
+    args[args.index("--request") + 1] = str(FIRST / "request.txt")
+    args[args.index("--contract") + 1] = str(FIRST / "contract.toml")
+    args[args.index("--catalog") + 1] = str(FIRST / "catalog.toml")
+    return [*args, "--planner-info", str(FIRST / "planner_info.json")]
+
+
+def test_the_frozen_files_match_their_recorded_hashes() -> None:
+    lines = (FIRST / "FROZEN.sha256").read_text().splitlines()
+    assert sorted(line.split()[1] for line in lines) == [
+        "catalog.toml",
+        "contract.toml",
+        "request.txt",
+    ]
+    for line in lines:
+        value, name = line.split()
+        assert hashlib.sha256((FIRST / name).read_bytes()).hexdigest() == value, name
+
+
+@pytest.mark.parametrize("name", ["contract.toml", "catalog.toml"])
+def test_the_frozen_policy_is_the_release_basic_template(name: str) -> None:
+    assert (FIRST / name).read_bytes() == (TEMPLATE / name).read_bytes()
+
+
+def test_the_request_has_the_task_and_the_actual_documents() -> None:
+    request = (FIRST / "request.txt").read_text()
+    assert request.startswith(TASK + "\n")
+    for document in (SCHEMA, TEMPLATE / "catalog.toml", TEMPLATE / "contract.toml"):
+        assert document.read_text().rstrip("\n") in request, document
+
+
+def test_the_request_contains_no_example_plan() -> None:
+    request = (FIRST / "request.txt").read_text()
+    # The schema declares these fields as objects, so a quoted value can only come from a plan.
+    assert not re.search(r'"(id|action)"\s*:\s*"', request)
+    assert not re.search(r'"steps"\s*:\s*\[', request)
+
+
+def test_unknown_identity_and_sampling_fields_are_null() -> None:
+    info = json.loads((FIRST / "planner_info.json").read_text())
+    assert info.pop("other_settings") == {}
+    assert set(info.values()) == {None}
+
+
+@pytest.mark.parametrize(
+    ("response", "code", "status"),
+    [
+        (VALID, 0, "executed"),
+        (MISMATCH, 1, "rejected"),
+        ("I cannot produce that plan.", 2, "error"),
+        ("```json\n" + VALID + "```", 2, "error"),
+    ],
+    ids=["pass", "reject", "prose", "fenced"],
+)
+def test_a_saved_response_is_preserved_whatever_it_is(
+    base: list[str], tmp_path: Path, response: str, code: int, status: str
+) -> None:
+    out = tmp_path / "trial"
+    label = "authored rehearsal of the first-trial files"
+    args = [*frozen(base), *saved(tmp_path, response), "--label", label, "--out", str(out)]
+    assert main(args) == code
+    outcome = load(out, "outcome.json")
+    assert outcome["status"] == status
+    assert outcome["trial_label"] == label
+    assert (out / "raw_output.txt").read_text() == response
+    assert (out / "request.txt").read_bytes() == (FIRST / "request.txt").read_bytes()
+    assert (out / "policy/contract.toml").read_bytes() == (FIRST / "contract.toml").read_bytes()
+    assert load(out, "planner.json")["identity_status"] == "supplied by the operator, not verified"
