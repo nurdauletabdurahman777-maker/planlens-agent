@@ -23,6 +23,7 @@ RUFF = "ruff@0.17.4"
 MYPY = "mypy@2.4.1"
 ACTIONLINT = "actionlint-py==1.7.12.25"
 RECIPE = ROOT / "examples" / "langgraph_gate"
+PILOT_TRIAL = ROOT / "pilot" / "planner-trial"
 BIN = "Scripts" if os.name == "nt" else "bin"
 EXE = ".exe" if os.name == "nt" else ""
 
@@ -108,7 +109,8 @@ def recipe(python: str, tmp: Path, log: Path | None) -> None:
     py = env / BIN / f"python{EXE}"
     sh("uv", "pip", "install", "-q", "--python", py, "--require-hashes",
        "-r", RECIPE / "requirements.lock")  # fmt: skip
-    sh(py, "-m", "pytest", RECIPE / "test_gate.py", "-q", "-p", "no:cacheprovider",
+    sh(py, "-m", "pytest", RECIPE / "test_gate.py", PILOT_TRIAL / "test_capture_trial.py",
+       "-q", "-p", "no:cacheprovider",
        cwd=tmp, env={"PYTHONDONTWRITEBYTECODE": "1"})  # fmt: skip
     args: list[str | Path] = [
         py, ROOT / "scripts" / "journey.py",
