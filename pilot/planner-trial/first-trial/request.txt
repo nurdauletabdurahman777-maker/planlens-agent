@@ -1,0 +1,160 @@
+Create a sequential production-release plan for version 2.4.0 using the supplied action catalog and owner contract. Include the required build, unit-test, security-scan, code-review and deployment actions. Deployment must use the same planned artifact as testing and scanning. Satisfy every supplied requirement. Return only JSON conforming to planlens-agent/plan/v1.
+
+The plan schema, action catalog and owner contract follow.
+
+===== BEGIN plan schema planlens-agent/plan/v1 (JSON Schema) =====
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "planlens-agent/plan/v1",
+  "title": "planlens-agent candidate plan, v1",
+  "description": "Untrusted, agent-proposed. List order is execution order. Step ids must be unique (checked by the engine; not expressible here). Fields that try to change policy are reported by the engine as violations; fields asking for unsupported semantics are refused.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "steps"
+  ],
+  "properties": {
+    "schema": {
+      "const": "planlens-agent/plan/v1"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "mode": {
+      "const": "sequential"
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "action"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+          },
+          "action": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,63}$"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "inputs": {
+            "type": "object",
+            "maxProperties": 32,
+            "propertyNames": {
+              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+            },
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}\\.[a-z][a-z0-9_]{0,63}$"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+===== END plan schema planlens-agent/plan/v1 (JSON Schema) =====
+
+===== BEGIN action catalog (catalog.toml) =====
+# Action catalog for the release-basic example.
+#
+# Owned by the application, not by the agent. It lists the actions a plan may
+# use, and the named artifact inputs and outputs each one declares.
+#   outputs: what the step produces, as  name = "artifact type"
+#   inputs:  what the step consumes,  as  name = "accepted artifact type"
+# Every declared input must be bound in a plan to an earlier step's output.
+#
+# This describes actions. It does not show what the code behind them does.
+
+schema = "planlens-agent/catalog/v1"
+id = "release-basic"
+version = "1.0.0"
+description = "Actions for a minimal build, verify, review and deploy release."
+
+[actions.build]
+description = "Build a release artifact from the reviewed source."
+outputs = { artifact = "release-artifact" }
+
+[actions.unit_tests]
+description = "Run unit tests against a built artifact."
+inputs = { artifact = "release-artifact" }
+
+[actions.security_scan]
+description = "Scan a built artifact for known vulnerabilities."
+inputs = { artifact = "release-artifact" }
+
+[actions.code_review]
+description = "Human review of the change being released."
+
+[actions.deploy]
+description = "Deploy an artifact to production."
+inputs = { artifact = "release-artifact" }
+
+[actions.notify]
+description = "Announce the release. Optional; the contract does not require it."
+===== END action catalog (catalog.toml) =====
+
+===== BEGIN owner contract (contract.toml) =====
+# Release contract for the release-basic example.
+#
+# Owned by the application, not by the agent. A candidate plan cannot remove,
+# waive or replace anything here. Every rule is required.
+
+schema = "planlens-agent/contract/v1"
+id = "release-basic"
+version = "1.0.0"
+description = "A release must be built, tested, scanned and reviewed before it is deployed."
+
+# The catalog this contract was written for. A different catalog is refused.
+catalog = { id = "release-basic", version = "1.0.0" }
+
+# Every plan must contain at least one step of each of these actions.
+required_actions = ["build", "unit_tests", "security_scan", "code_review", "deploy"]
+
+# kind = "prerequisite": every step of `action` needs an earlier step of
+# `requires_prior`. Actions with no rule between them may appear in either order.
+[[rules]]
+id = "review-before-deploy"
+kind = "prerequisite"
+action = "deploy"
+requires_prior = "code_review"
+because = "A release may not be deployed before its code review."
+
+[[rules]]
+id = "tests-before-deploy"
+kind = "prerequisite"
+action = "deploy"
+requires_prior = "unit_tests"
+because = "A release may not be deployed before its unit tests run."
+
+[[rules]]
+id = "scan-before-deploy"
+kind = "prerequisite"
+action = "deploy"
+requires_prior = "security_scan"
+because = "A release may not be deployed before its security scan runs."
+
+# kind = "same_artifact": these inputs must all refer to one planned artifact,
+# meaning the same producer step and output.
+[[rules]]
+id = "deploy-what-was-verified"
+kind = "same_artifact"
+inputs = ["unit_tests.artifact", "security_scan.artifact", "deploy.artifact"]
+because = "The artifact that is deployed must be the one that was tested and scanned."
+===== END owner contract (contract.toml) =====

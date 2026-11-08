@@ -1,0 +1,36 @@
+# Action catalog for the release-basic example.
+#
+# Owned by the application, not by the agent. It lists the actions a plan may
+# use, and the named artifact inputs and outputs each one declares.
+#   outputs: what the step produces, as  name = "artifact type"
+#   inputs:  what the step consumes,  as  name = "accepted artifact type"
+# Every declared input must be bound in a plan to an earlier step's output.
+#
+# This describes actions. It does not show what the code behind them does.
+
+schema = "planlens-agent/catalog/v1"
+id = "release-basic"
+version = "1.0.0"
+description = "Actions for a minimal build, verify, review and deploy release."
+
+[actions.build]
+description = "Build a release artifact from the reviewed source."
+outputs = { artifact = "release-artifact" }
+
+[actions.unit_tests]
+description = "Run unit tests against a built artifact."
+inputs = { artifact = "release-artifact" }
+
+[actions.security_scan]
+description = "Scan a built artifact for known vulnerabilities."
+inputs = { artifact = "release-artifact" }
+
+[actions.code_review]
+description = "Human review of the change being released."
+
+[actions.deploy]
+description = "Deploy an artifact to production."
+inputs = { artifact = "release-artifact" }
+
+[actions.notify]
+description = "Announce the release. Optional; the contract does not require it."

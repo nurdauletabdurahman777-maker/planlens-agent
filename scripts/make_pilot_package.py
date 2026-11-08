@@ -34,6 +34,17 @@ FILES = {
     "pilot/planner-trial/README.md": "planner-trial/README.md",
     "pilot/planner-trial/capture_trial.py": "planner-trial/capture_trial.py",
     "pilot/planner-trial/planner_info.template.json": "planner-trial/planner_info.template.json",
+    **{
+        f"pilot/planner-trial/first-trial/{name}": f"planner-trial/first-trial/{name}"
+        for name in (
+            "README.md",
+            "request.txt",
+            "contract.toml",
+            "catalog.toml",
+            "planner_info.json",
+            "FROZEN.sha256",
+        )
+    },
 }
 
 
