@@ -11,7 +11,7 @@ running it built the tool, and command execution times say nothing about how lon
 | Platform | macOS 26.6.2 arm64, in `zsh`, the macOS default shell |
 | Python | CPython 3.14.7 and CPython 3.11.15, separately |
 | Package | `planlens-agent` 0.1.0.dev0, built with `pip wheel` from a real clone of the private repository |
-| Wheel SHA-256 | `7e546a410c911035dcc4917d03c0247c46f47bbc45ea9debd262bac37703f49b`, the same from both Pythons |
+| Wheel SHA-256 | `d5d64cb84744b8ffe7aaf2ab8b0cb4d926348034a6bd4625eda443f3a1aa7537`, the same from both Pythons |
 | Environment | Fresh folder outside the checkout. Only clone and build used the real environment, for credentials. Everything else ran with only `HOME`, `PATH` and `TERM` set |
 | Network | Denied by `sandbox-exec` for everything except the clone, the build and the documented LangGraph install |
 
