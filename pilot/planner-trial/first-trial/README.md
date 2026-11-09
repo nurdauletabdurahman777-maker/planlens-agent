@@ -4,7 +4,8 @@ A **single integration trial using an authored release task**. A person wrote th
 then answers it, that answer is real planner output, but one response under one configuration. It is
 not a measurement of any model.
 
-Status: **prepared, not run.** No model has been called and no output has been received.
+Status: **run once and reviewed.** See the [evidence page](../../../docs/evidence.md). The record itself
+is kept outside the repository. Do not repeat this trial under the same label.
 
 ## Owner decisions
 

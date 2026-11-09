@@ -2,8 +2,8 @@
 
     python scripts/ci_local.py STAGE [--python VERSION] [--log FILE]
 
-Stages: lint, test, package, journey, recipe, pilot, all. Needs uv on PATH. Virtual environments
-and build output go to a temporary directory outside the checkout. Any failing command
+Stages: lint, test, package, journey, recipe, pilot, docs, all. Needs uv on PATH. Virtual
+environments and build output go to a temporary directory outside the checkout. Any failing command
 stops the stage with its exit status.
 """
 
@@ -74,6 +74,8 @@ def package(python: str, tmp: Path, log: Path | None) -> None:
             sys.exit(f"wheel is missing {wanted}")
     if any("tests/data" in n or "langgraph" in n for n in names):
         sys.exit("wheel contains test data or the framework recipe")
+    if any(n.endswith((".gif", ".png")) or "docs/" in n or "scripts/" in n for n in names):
+        sys.exit("wheel contains media or development tooling")
     required = [x for x in metadata.splitlines() if x.startswith("Requires-Dist:")]
     if [x for x in required if "extra ==" not in x]:
         sys.exit(f"wheel has runtime dependencies: {required}")
@@ -130,6 +132,22 @@ def pilot(python: str, tmp: Path, log: Path | None) -> None:
        cwd=tmp, env={"PYTHONDONTWRITEBYTECODE": "1"})  # fmt: skip
 
 
+def docs(python: str, tmp: Path, log: Path | None) -> None:
+    wheel = build_wheel(tmp)
+    found = subprocess.run(
+        ["uv", "python", "find", "--no-project", python],
+        capture_output=True, text=True, check=True,
+    )  # fmt: skip
+    args: list[str | Path] = [
+        sys.executable, ROOT / "scripts" / "docs_check.py", ROOT / "README.md",
+        ROOT / "docs" / "quickstart.md", "--python", found.stdout.strip(),
+        "--work", tmp / "docs", "--wheel", wheel, "--checkout", ROOT,
+    ]  # fmt: skip
+    if log:
+        args += ["--log", log]
+    sh(*args, cwd=tmp)
+
+
 STAGES = {
     "lint": lint,
     "test": test,
@@ -137,6 +155,7 @@ STAGES = {
     "journey": journey,
     "recipe": recipe,
     "pilot": pilot,
+    "docs": docs,
 }
 
 
