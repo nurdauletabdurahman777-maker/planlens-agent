@@ -156,7 +156,9 @@ def test_the_case_fragment_is_the_real_plan() -> None:
 def test_the_case_diagnosis_is_real_output() -> None:
     done = run_cli("check", "plans/artifact-mismatch.json", cwd=TEMPLATE)
     assert done.returncode == 1
-    assert done.stdout.rstrip("\n") in TRANSCRIPT
+    # The transcript was captured on POSIX; Windows prints this input path with a backslash.
+    output = done.stdout.replace("plans\\artifact-mismatch.json", "plans/artifact-mismatch.json")
+    assert output.rstrip("\n") in TRANSCRIPT
     for line in ("RESULT: REJECTED (exit 1) - 1 violation", "    why:      The artifact that is"):
         assert line in done.stdout and line in CASE
     assert "plan/artifact-identity" in done.stdout and "deploy-what-was-verified" in done.stdout
