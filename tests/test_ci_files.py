@@ -13,6 +13,7 @@ from helpers import ROOT
 WORKFLOWS = ROOT / ".github" / "workflows"
 CI = WORKFLOWS / "ci.yml"
 DEMO = WORKFLOWS / "consumer-demo.yml"
+PUBLISH = WORKFLOWS / "publish.yml"
 
 
 def job(text: str, name: str) -> str:
@@ -22,7 +23,7 @@ def job(text: str, name: str) -> str:
     return match.group(1)
 
 
-@pytest.mark.parametrize("path", [CI, DEMO], ids=lambda p: p.name)
+@pytest.mark.parametrize("path", [CI, DEMO, PUBLISH], ids=lambda p: p.name)
 def test_nothing_can_swallow_a_gate_or_reach_a_secret(path: Path) -> None:
     code = "\n".join(
         x for x in path.read_text(encoding="utf-8").splitlines() if not x.strip().startswith("#")
@@ -40,7 +41,7 @@ def test_nothing_can_swallow_a_gate_or_reach_a_secret(path: Path) -> None:
         assert token not in code, token
 
 
-@pytest.mark.parametrize("path", [CI, DEMO], ids=lambda p: p.name)
+@pytest.mark.parametrize("path", [CI, DEMO, PUBLISH], ids=lambda p: p.name)
 def test_every_action_is_pinned_to_a_full_commit(path: Path) -> None:
     uses = re.findall(r"uses:\s*(\S+)", path.read_text(encoding="utf-8"))
     assert uses
@@ -48,15 +49,52 @@ def test_every_action_is_pinned_to_a_full_commit(path: Path) -> None:
         assert re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", action), action
 
 
-@pytest.mark.parametrize("path", [CI, DEMO], ids=lambda p: p.name)
+@pytest.mark.parametrize("path", [CI, DEMO, PUBLISH], ids=lambda p: p.name)
 def test_default_permissions_are_read_only(path: Path) -> None:
     assert re.search(r"^permissions:\n  contents: read\n", path.read_text(encoding="utf-8"), re.M)
 
 
-@pytest.mark.parametrize("path", [CI, DEMO], ids=lambda p: p.name)
+@pytest.mark.parametrize("path", [CI, DEMO, PUBLISH], ids=lambda p: p.name)
 def test_checkouts_do_not_keep_credentials(path: Path) -> None:
     text = path.read_text(encoding="utf-8")
     assert text.count("actions/checkout@") == text.count("persist-credentials: false")
+
+
+def test_publishing_only_starts_by_hand() -> None:
+    assert re.search(r"^on:\n  workflow_dispatch:\n    inputs:", PUBLISH.read_text("utf-8"), re.M)
+    assert not re.search(
+        r"^  (push|pull_request|schedule|release):", PUBLISH.read_text("utf-8"), re.M
+    )
+
+
+def test_only_the_publish_job_gets_an_identity_token_and_uses_the_environment() -> None:
+    text = PUBLISH.read_text("utf-8")
+    assert text.count("id-token: write") == 1 and "id-token: write" in job(text, "publish")
+    assert "name: pypi\n" in job(text, "publish") and "environment" not in job(text, "check")
+
+
+def test_the_published_pair_is_the_checked_pair_and_is_never_rebuilt() -> None:
+    text = PUBLISH.read_text("utf-8")
+    check, publish = job(text, "check"), job(text, "publish")
+    assert check.count("uv build") == 1 and "scripts/release_check.py" in check
+    assert (
+        check.index("uv build") < check.index("release_check.py") < check.index("upload-artifact")
+    )
+    assert "uv build" not in publish and "actions/checkout" not in publish
+    assert "needs: check" in publish
+    assert "sha256sum --check --strict" in publish
+    assert publish.index("sha256sum") < publish.index("gh-action-pypi-publish")
+
+
+def test_publishing_stops_unless_tag_commit_and_main_agree() -> None:
+    check = job(PUBLISH.read_text("utf-8"), "check")
+    for condition in (
+        'test "$REF" = "refs/tags/v$VERSION"',
+        'test "$(git rev-parse HEAD)" = "$COMMIT"',
+        'test "$(git rev-parse refs/remotes/origin/main)" = "$COMMIT"',
+    ):
+        assert condition in check, condition
+    assert check.index("refs/remotes/origin/main") < check.index("uv build")
 
 
 def test_only_the_sarif_job_can_write_security_events() -> None:

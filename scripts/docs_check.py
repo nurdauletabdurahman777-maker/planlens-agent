@@ -13,13 +13,15 @@ command except the last must exit 0; the last must exit with `exit=` (default 0)
 is meant to fail therefore goes last in its block. Constructs that could hide a failure inside one
 line (`;`, pipes, `||`, `&`, command substitution, including inside double quotes) are refused.
 
-`prereq` marks steps that need network access and repository credentials. With --wheel they
-are skipped, and the wheel and a copy of the checkout are put in place. `online` marks later steps
-that need the network. `dev` marks commands run from the root of the clone in a clean shell: real
-HOME for tool caches, PATH with only uv and the system directories, and no virtual environment.
-With --deny-network (macOS) ordinary blocks run with network access denied. Ordinary blocks run
-with an empty environment: only HOME, PATH holding the chosen Python and the system directories,
-and TERM.
+`prereq` marks steps that need network access. With --wheel they are skipped, and the wheel and a
+copy of the checkout are put in place. With --wheel, ordinary blocks also run with pip confined to
+that wheel, so a documented `pip install "planlens-agent==X"` resolves locally; that verifies the
+command against the wheel and says nothing about PyPI. `online` marks later steps that need the
+network, and never see that confinement. `dev` marks commands run from the root of the clone in a
+clean shell: real HOME for tool caches, PATH with only uv and the system directories, and no
+virtual environment. With --deny-network (macOS) ordinary blocks run with network access denied.
+Ordinary blocks run with an empty environment: only HOME, PATH holding the chosen Python and the
+system directories, and TERM.
 
 Standard library only. Development tooling: not part of the package.
 """
@@ -186,6 +188,16 @@ def judge(block: Block, recorded: list[int]) -> str | None:
     return None
 
 
+def offline_pip(wheelhouse: Path) -> dict[str, str]:
+    """pip settings that resolve only from the local wheel. Not a download from any index."""
+    return {
+        "PIP_NO_INDEX": "1",
+        "PIP_FIND_LINKS": str(wheelhouse),
+        "PIP_CONFIG_FILE": os.devnull,
+        "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+    }
+
+
 def run_doc(doc: Path, a: argparse.Namespace, say: list[str]) -> int:
     blocks = parse(doc.read_text("utf-8"))
     bad = problems(blocks)
@@ -207,6 +219,7 @@ def run_doc(doc: Path, a: argparse.Namespace, say: list[str]) -> int:
         shutil.copy(a.wheel, work / "wheelhouse")
         shutil.copytree(a.checkout, clone, ignore=COPY_IGNORE)
         blocks = [b for b in blocks if b.kind != "prereq"]
+        say.append("ordinary blocks: pip confined to the local wheel; this does not exercise PyPI")
     minimal = {"HOME": str(home), "PATH": f"{tools}:/usr/bin:/bin", "TERM": "dumb"}
     uv = shutil.which("uv")
     clean = {
@@ -232,6 +245,8 @@ def run_doc(doc: Path, a: argparse.Namespace, say: list[str]) -> int:
             lines += [render(b, base + i, work) for i, b in enumerate(group)]
         else:
             lines = [f'cd "$(cat "{cwd}")"', f'[ -f "{state}" ] && . "{state}"']
+            if kind != "normal":
+                lines.append("unset " + " ".join(offline_pip(work)))
             lines += [render(b, base + i, work) for i, b in enumerate(group)]
             lines += [f'export -p > "{state}"', f'pwd > "{cwd}"']
         script = work / f".phase{base}.sh"
@@ -239,6 +254,8 @@ def run_doc(doc: Path, a: argparse.Namespace, say: list[str]) -> int:
         # Prerequisites keep the real HOME for repository credentials, but still use this Python.
         real = {**os.environ, "PATH": f"{tools}:{os.environ['PATH']}"}
         env = real if kind == "prereq" else clean if kind == "dev" else minimal
+        if kind == "normal" and a.wheel:
+            env = {**env, **offline_pip(work / "wheelhouse")}
         argv = [a.shell, str(script)]
         if a.deny_network and kind == "normal":
             argv = ["sandbox-exec", "-p", SANDBOX, *argv]

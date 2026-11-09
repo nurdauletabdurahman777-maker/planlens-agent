@@ -1,13 +1,12 @@
 # Contributing
 
-PlanLens is a private pre-release. You need read access to the repository and [uv](https://docs.astral.sh/uv/).
+PlanLens is in its 0.x series, and its public API may evolve. You need Git and [uv](https://docs.astral.sh/uv/).
 
 ## Set up and test
 
 <!-- run prereq -->
 ```sh
-git clone --branch launch/developer-experience \
-  https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
+git clone https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
 ```
 
 Run everything below from the root of the clone. No virtual environment has to be active: `uv run` creates

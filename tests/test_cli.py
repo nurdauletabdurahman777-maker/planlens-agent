@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from planlens_agent import RULES, cli
+from planlens_agent import RULES, __version__, cli
 
 from helpers import TEMPLATE, run_cli
 
@@ -178,7 +178,7 @@ def test_rules_and_explain_work_offline() -> None:
 
 def test_version() -> None:
     proc = run_cli("--version")
-    assert proc.returncode == 0 and proc.stdout.startswith("planlens-agent 0.1.0")
+    assert proc.returncode == 0 and proc.stdout.strip() == f"planlens-agent {__version__}"
 
 
 def test_documented_fix_a_copy_flow_keeps_fixtures_intact(project: Path) -> None:

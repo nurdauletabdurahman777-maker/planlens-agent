@@ -4,13 +4,13 @@ requires = ["hatchling==1.33.0"]
 build-backend = "hatchling.build"
 
 [project]
-# PROVISIONAL distribution name. See docs/naming.md: "planlens" on PyPI belongs
-# to an unrelated project, and the research artifact already uses the console
-# command "planlens". This name has not been registered or reserved.
+# Selected distribution name. See docs/naming.md: "planlens" on PyPI belongs to
+# an unrelated project, and the research artifact already uses the console
+# command "planlens". PyPI registration is pending.
 name = "planlens-agent"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Lint AI-agent plans before they run: check structured plans against owner-supplied workflow requirements."
-readme = "README.md"
+readme = "README.pypi.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
@@ -18,7 +18,7 @@ authors = [{ name = "Nurdaulet Abdrakhman" }, { name = "Daniyal Kozyrev" }]
 maintainers = [{ name = "Nurdaulet Abdrakhman" }]
 dependencies = []
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
     "Typing :: Typed",
 ]
@@ -46,7 +46,9 @@ include = [
     "/scripts",
     "/examples",
     "/.github",
+    "/release",
     "/README.md",
+    "/README.pypi.md",
     "/LICENSE",
     "/NOTICE",
     "/AUTHORS.md",

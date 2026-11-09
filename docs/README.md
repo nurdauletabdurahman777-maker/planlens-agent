@@ -14,7 +14,7 @@
 | What has been observed, and its limits | [Evidence](evidence.md) |
 | The implementer's rehearsal | [Developer rehearsal](developer-rehearsal.md) |
 | Authored acceptance cases | [Acceptance examples](acceptance-examples.md) |
-| Why the names are provisional | [Naming](naming.md) |
+| Selected names and registration status | [Naming](naming.md) |
 | Logo and colours | [Brand](brand/README.md) |
 
 Runnable code is in [examples](../examples/README.md).

@@ -1,7 +1,7 @@
 Complete output of the authored demo, captured from the installed wheel. Nothing was deployed.
 
 $ planlens-agent check plans/artifact-mismatch.json
-planlens-agent 0.1.0.dev0 - declared-plan check
+planlens-agent 0.1.0 - declared-plan check
   plan      plans/artifact-mismatch.json  sha256:4b2a680effeb
   contract  release-basic 1.0.0  sha256:7bb60e9c3ee7
   catalog   release-basic 1.0.0  sha256:e85a33811dfb
@@ -39,7 +39,7 @@ $ diff plans/artifact-mismatch.json my-plan.json
 [exit 1]
 
 $ planlens-agent check my-plan.json
-planlens-agent 0.1.0.dev0 - declared-plan check
+planlens-agent 0.1.0 - declared-plan check
   plan      my-plan.json  sha256:dc3594ad2bb6
   contract  release-basic 1.0.0  sha256:7bb60e9c3ee7
   catalog   release-basic 1.0.0  sha256:e85a33811dfb

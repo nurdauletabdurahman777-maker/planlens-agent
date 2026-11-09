@@ -13,7 +13,7 @@ LangGraph is a dependency of this recipe only. `planlens-agent` itself has none.
 ```console
 python -m venv .venv && . .venv/bin/activate
 pip install --require-hashes -r requirements.lock
-pip install --no-deps planlens-agent-*.whl
+pip install --no-deps "planlens-agent==0.1.0"
 planlens-agent init release-basic demo && cd demo
 python ../gate.py plans/valid.json              # exit 0, 6 handler calls
 python ../gate.py plans/artifact-mismatch.json  # exit 1, 0 handler calls

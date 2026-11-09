@@ -4,7 +4,7 @@ Checks a structured, ordered plan against an action catalog and a contract
 supplied independently by the application owner. Offline and deterministic:
 no model calls, no network, no clock, no randomness.
 
-The distribution name ``planlens-agent`` is provisional; see docs/naming.md.
+Naming and registration status of ``planlens-agent``: see docs/naming.md.
 """
 
 from ._version import __version__
