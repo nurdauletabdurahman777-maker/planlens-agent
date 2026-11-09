@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -91,3 +93,133 @@ def test_the_opening_screen_says_what_it_is_before_anything_else() -> None:
 @pytest.mark.parametrize("doc", DOCS, ids=lambda p: p.name)
 def test_no_local_paths(doc: Path) -> None:
     assert "/Users/" not in doc.read_text(encoding="utf-8")
+
+
+# --- the runner cannot be fooled by a later success -----------------------------------
+windows = pytest.mark.skipif(os.name == "nt", reason="the documentation runner needs a POSIX shell")
+FAIL = 'python3 -c "import sys; sys.exit(3)"'
+OK = 'python3 -c "print(1)"'
+
+
+def run(tmp_path: Path, text: str, name: str = "guide") -> subprocess.CompletedProcess[str]:
+    doc = tmp_path / f"{name}.md"
+    doc.write_text(text)
+    work = tmp_path / f"work-{name}"
+    argv = [
+        sys.executable,
+        str(ROOT / "scripts" / "docs_check.py"),
+        str(doc),
+        "--python",
+        sys.executable,
+        "--work",
+        str(work),
+    ]
+    return subprocess.run(argv, capture_output=True, text=True, check=False)
+
+
+def sh(body: str, attrs: str = "") -> str:
+    return f"<!-- run {attrs} -->\n```sh\n{body}\n```\n\n"
+
+
+@windows
+def test_a_missing_script_fails_even_when_a_later_command_succeeds(tmp_path: Path) -> None:
+    done = run(tmp_path, sh(f"python3 definitely-missing-sdk.py\n{OK}"))
+    assert done.returncode == 1, done.stdout
+    assert "command 1 of 2 exited 2, wanted 0: python3 definitely-missing-sdk.py" in done.stdout
+
+
+@windows
+def test_a_failed_setup_command_stops_the_block_and_cannot_be_hidden(tmp_path: Path) -> None:
+    done = run(tmp_path, sh("cd no-such-directory\ntouch must-not-exist"))
+    assert done.returncode == 1, done.stdout
+    assert "command 1 of 2" in done.stdout
+    assert not list((tmp_path / "work-guide").rglob("must-not-exist"))
+
+
+@windows
+def test_an_intended_final_exit_is_accepted(tmp_path: Path) -> None:
+    done = run(tmp_path, sh(f"{OK}\n{FAIL}", "exit=3"))
+    assert done.returncode == 0, done.stdout
+
+
+@windows
+def test_a_nonzero_exit_is_accepted_only_from_the_last_command(tmp_path: Path) -> None:
+    done = run(tmp_path, sh(f"{FAIL}\n{OK}", "exit=3"))
+    assert done.returncode == 1, done.stdout
+    assert "command 1 of 2 exited 3, wanted 0" in done.stdout
+
+
+@windows
+def test_an_expected_failure_that_succeeds_is_refused(tmp_path: Path) -> None:
+    assert run(tmp_path, sh(OK, "exit=1")).returncode == 1
+
+
+@windows
+def test_working_directory_activation_and_heredocs_carry_across_commands(tmp_path: Path) -> None:
+    text = (
+        sh("python3 -m venv env\n. env/bin/activate\nmkdir inner\ncd inner")
+        + sh(
+            "cat > note.txt <<'EOF'\n"
+            "a; b | c $(d) # not shell\n"
+            "EOF\n"
+            "cat note.txt\n"
+            "python -c \\\n"
+            '  "import sys; print(sys.prefix.endswith(chr(101) + chr(110) + chr(118)))"',
+            'contains="a; b | c $(d) # not shell" contains="True"',
+        )
+        + sh('python -c "import os; print(os.path.basename(os.getcwd()))"', 'contains="inner"')
+    )
+    done = run(tmp_path, text)
+    assert done.returncode == 0, done.stdout
+
+
+@windows
+def test_a_block_that_kills_the_shell_is_not_counted_as_finished(tmp_path: Path) -> None:
+    done = run(tmp_path, sh(f"exit 0\n{OK}"))
+    assert done.returncode == 1, done.stdout
+    assert "did not finish" in done.stdout
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["false; true", "false | true", "false || true", "x=$(false)", "echo `false`", "false &"],
+)
+def test_constructs_that_can_hide_a_failure_are_refused(line: str) -> None:
+    found = docs_check.problems(docs_check.parse(f"<!-- run -->\n```sh\n{line}\n```\n"))
+    assert any("can hide a failure" in item for item in found), found
+
+
+@pytest.mark.parametrize(
+    "line",
+    ["sed 's/a;b|c/d/' in > out", 'echo "a; b | c"', "first && second", "tool > out 2>&1"],
+)
+def test_safe_lines_are_not_refused(line: str) -> None:
+    assert docs_check.problems(docs_check.parse(f"<!-- run -->\n```sh\n{line}\n```\n")) == []
+
+
+def test_heredoc_bodies_are_not_treated_as_shell() -> None:
+    text = "<!-- run -->\n```sh\ncat > f <<'EOF'\na; b | c # d\nEOF\n```\n"
+    assert docs_check.problems(docs_check.parse(text)) == []
+
+
+@pytest.mark.parametrize("text", ["cat > f <<EOF\nx\nEOF", "cat > f <<'EOF'\nnever closed"])
+def test_unsafe_heredocs_are_refused(text: str) -> None:
+    assert docs_check.problems(docs_check.parse(f"<!-- run -->\n```sh\n{text}\n```\n"))
+
+
+def test_commands_keep_continuations_and_heredocs_whole() -> None:
+    body = "one \\\n  two\ncat > f <<'EOF'\nthree\nEOF\nfour\n"
+    assert docs_check.commands(body) == ["one \\\n  two", "cat > f <<'EOF'\nthree\nEOF", "four"]
+
+
+@pytest.mark.parametrize("doc", [ROOT / "README.md", ROOT / "docs" / "quickstart.md"], ids=str)
+def test_every_command_fence_in_the_journey_documents_is_verified(doc: Path) -> None:
+    fences = re.findall(r"^```(\w*)", doc.read_text(encoding="utf-8"), re.M)
+    assert not {"console", "shell", "bash", "zsh"} & set(fences), fences
+
+
+def test_the_development_setup_is_a_verified_block_that_selects_its_environment() -> None:
+    blocks = docs_check.parse((ROOT / "README.md").read_text(encoding="utf-8"))
+    dev = [b for b in blocks if b.kind == "dev"]
+    assert len(dev) == 1
+    assert dev[0].body.startswith("uv run ")

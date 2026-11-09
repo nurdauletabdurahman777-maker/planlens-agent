@@ -50,7 +50,9 @@ Developer experience
 - README rebuilt around the journey; quickstart with an owner-defined workflow; evidence page.
 - An authored demo GIF, a static fallback and an inspector screenshot, generated from installed-wheel
   output by `scripts/make_demo_media.py`.
-- `scripts/docs_check.py` and a `docs` CI stage run the copy-and-run blocks exactly as written.
+- `scripts/docs_check.py` and a `docs` CI stage run the copy-and-run blocks exactly as written. Each
+  command has its own status, so a failure in the middle of a block is fatal, and the README's
+  development command is run from a clean shell.
 
 Fixed on hosted CI
 
