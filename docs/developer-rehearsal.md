@@ -7,11 +7,11 @@ running it built the tool, and command execution times say nothing about how lon
 | Item | Value |
 | --- | --- |
 | Instructions followed | `README.md` and `docs/quickstart.md`, every copy-and-run block, as written |
-| Runner | `scripts/docs_check.py`, which executes the blocks and checks exit statuses and output |
+| Runner | `scripts/docs_check.py`, which executes the blocks and checks every command's exit status and the output |
 | Platform | macOS 26.6.2 arm64, in `zsh`, the macOS default shell |
 | Python | CPython 3.14.7 and CPython 3.11.15, separately |
 | Package | `planlens-agent` 0.1.0.dev0, built with `pip wheel` from a real clone of the private repository |
-| Wheel SHA-256 | `1657c8984766440990500b6d8942f3c4c9598b0125a7ab232dd40dd4aab4e3de`, the same from both Pythons |
+| Wheel SHA-256 | `0c4d8be8f9cece99241acfc47c4c0409082ad68b9b64ea4ebcd18ff252ebbfce`, the same from both Pythons |
 | Environment | Fresh folder outside the checkout. Only clone and build used the real environment, for credentials. Everything else ran with only `HOME`, `PATH` and `TERM` set |
 | Network | Denied by `sandbox-exec` for everything except the clone, the build and the documented LangGraph install |
 
@@ -39,6 +39,7 @@ Identical on both Python versions. Every plan is authored.
 | 7 | LangGraph install | `pip install --require-hashes -r …/requirements.lock` | 0 | LangGraph 1.2.20 |
 | 7 | Gate, valid plan | `python …/gate.py plans/valid.json` | 0 | `executed`, 6 handler calls |
 | 8 | Gate, rejected plan | `python …/gate.py plans/artifact-mismatch.json` | 1 | `rejected`, **0 handler calls** |
+| 9 | Development tests | `uv run --locked --extra dev pytest tests -q`, from the clone's root in a clean shell | 0 | Passed |
 
 The handlers in the LangGraph demo only record that they were called. No production action ran.
 
@@ -52,6 +53,8 @@ The handlers in the LangGraph demo only record that they were called. No product
 | `gate.py`'s demo has handlers for `release-basic` actions only. Run elsewhere, it stops with `handlers registered for actions not in the catalog` | Undocumented assumption | Documented in the quickstart. This is the example script's scope, not an engine defect |
 | Re-running in a used folder stops at `init` with a clear message | Expected | Added to troubleshooting |
 | The GIF lost its green on the final frame, had an empty first frame, and the example sat below it | Media and layout | Fixed after viewing the frames and the rendered README |
+| The runner recorded only a block's last status, so a missing script in the middle of a block went unseen (found by independent review) | Runner defect | Each command now has its own status; `docs` CI confirms a missing script fails the real quickstart |
+| The README's development commands ran outside the environment they created (found by independent review) | Documentation defect | Replaced with `uv run`, and made a verified block run from a clean shell |
 
 **No engine defect was found.** No change was made under `src/`.
 
@@ -59,6 +62,8 @@ The handlers in the LangGraph demo only record that they were called. No product
 
 - Following these instructions on Linux or Windows. The hosted `docs` job runs the blocks on Ubuntu and
   macOS with a prebuilt wheel, so it does not cover the clone step. Windows has not run them.
+- The README's other development commands (all CI stages, media regeneration) are too long or macOS-specific
+  for the docs check. Each was run once from a clean shell in a separate clone, on macOS.
 - `open report.html`, which opens a window. The report was opened in headless Chrome 156 instead. No other
   browser was tried.
 
