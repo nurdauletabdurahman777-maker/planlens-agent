@@ -23,8 +23,9 @@ build from the one that was tested and scanned.
 
 ## Install
 
-You need Python 3.11 or newer, Git, and read access to the repository. Building the wheel downloads its
-pinned build backend once. This is the only step here that needs a network.
+You need Python 3.11 or newer (check `python3 --version`), Git, and read access to the repository. Building
+the wheel downloads its pinned build backend once. This is the only step here that needs a network.
+[Troubleshooting](docs/quickstart.md#troubleshooting).
 
 <!-- run prereq -->
 ```sh

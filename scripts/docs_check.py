@@ -118,7 +118,9 @@ def run_doc(doc: Path, a: argparse.Namespace, say: list[str]) -> int:
         lines += [f'export -p > "{state}"', f'pwd > "{cwd}"']
         script = work / f".phase{base}.sh"
         script.write_text("\n".join(lines) + "\n")
-        env = dict(os.environ) if kind == "prereq" else minimal
+        # Prerequisites keep the real HOME for repository credentials, but still use this Python.
+        real = {**os.environ, "PATH": f"{tools}:{os.environ['PATH']}"}
+        env = real if kind == "prereq" else minimal
         argv = [a.shell, str(script)]
         if a.deny_network and kind == "normal":
             argv = ["sandbox-exec", "-p", SANDBOX, *argv]

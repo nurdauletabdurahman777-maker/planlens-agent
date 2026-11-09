@@ -7,9 +7,10 @@ Run the blocks in order, from one empty folder, in one terminal.
 
 **Once, to get the package** (this needs a network):
 
-- Python 3.11 or newer. Check with `python3 --version`.
+- Python 3.11 or newer. Check with `python3 --version`: some systems still ship an older `python3`.
 - Git, and read access to the private
-  [repository](https://github.com/nurdauletabdurahman777-maker/planlens-agent).
+  [repository](https://github.com/nurdauletabdurahman777-maker/planlens-agent). Sign in to GitHub first,
+  for example with `gh auth login`.
 
 **For normal use, nothing else.** After installation the tool works offline, with no account, API key
 or telemetry. The only later network step is the optional LangGraph install in section 7.
@@ -182,6 +183,10 @@ is never a dependency of `planlens-agent` itself.
 pip install --require-hashes -r ../planlens-agent/examples/langgraph_gate/requirements.lock
 ```
 
+`gate.py`'s command-line demo has handlers for the `release-basic` actions only, so run it from that
+folder. To gate your own workflow, call `build_gate` with your own handlers; see the
+[recipe](../examples/langgraph_gate/README.md).
+
 A plan that passes runs its handlers; the handlers in this example only record that they were called:
 
 <!-- run online contains="status:        executed" contains="handler calls: 6" -->
@@ -195,6 +200,16 @@ A rejected plan reaches no handler:
 ```sh
 python ../planlens-agent/examples/langgraph_gate/gate.py plans/artifact-mismatch.json
 ```
+
+## Troubleshooting
+
+| What you see | What it means |
+| --- | --- |
+| `No matching distribution found for hatchling==1.33.0` | `python3` is older than 3.11. Install a newer Python, make `python3` point to it, and start again in an empty folder |
+| `requires a different Python` | The same: this environment's Python is older than 3.11 |
+| The clone fails or asks for credentials | You need read access to the private repository and a signed-in GitHub account |
+| `already exists and is not an empty directory` | `init` will not write over a folder. Start from an empty folder, or name a new one |
+| `handlers registered for actions not in the catalog` | `gate.py`'s demo was run outside `release-basic`. See section 7 |
 
 ## Where to go next
 
