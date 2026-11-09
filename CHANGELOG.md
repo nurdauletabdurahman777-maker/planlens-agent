@@ -60,6 +60,11 @@ Presentation
   in a collapsed section, a docs index, an examples index and contributor guidance.
 - Terminal media is now a labelled excerpt with a complete transcript beside it.
 
+Project details
+
+- Owner-confirmed authors, maintainer, copyright holder and contact in `AUTHORS.md`, `NOTICE`, the README
+  and package metadata. `CONTRIBUTING.md` is now in the sdist.
+
 Fixed on hosted CI
 
 - `.gitattributes` keeps LF on every platform and leaves the vendored OASIS schema untouched.

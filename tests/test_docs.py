@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -408,3 +409,32 @@ def test_literal_text_really_is_literal_when_run(tmp_path: Path) -> None:
     body = 'echo \'$(false)\'\necho "\\`false\\`"\necho "\\$(hostname)"'
     done = run(tmp_path, sh(body, 'contains="$(false)" contains="`false`" contains="$(hostname)"'))
     assert done.returncode == 0, done.stdout
+
+
+# --- owner-confirmed project details --------------------------------------------------
+PROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+NOTICE = (ROOT / "NOTICE").read_text(encoding="utf-8")
+
+
+def test_package_metadata_names_the_confirmed_people_in_order() -> None:
+    project = PROJECT["project"]
+    assert project["authors"] == [{"name": "Nurdaulet Abdrakhman"}, {"name": "Daniyal Kozyrev"}]
+    assert project["maintainers"] == [{"name": "Nurdaulet Abdrakhman"}]
+    assert project["dependencies"] == []
+    assert (
+        project["urls"]["Contact"] == "https://www.linkedin.com/in/nurdaulet-abdrakhman-523784375"
+    )
+
+
+def test_notice_keeps_product_research_and_oasis_attribution_separate() -> None:
+    assert "Copyright 2026 Nurdaulet Abdrakhman\n" in NOTICE
+    assert "Copyright 2026 Nurdaulet Abdrakhman and Daniyal Kozyrev, Apache-2.0" in NOTICE
+    assert "OASIS work product" in NOTICE and "not under the Apache License" in NOTICE
+    assert "pending" not in NOTICE
+
+
+def test_every_root_document_the_readme_links_is_in_the_sdist() -> None:
+    include = PROJECT["tool"]["hatch"]["build"]["targets"]["sdist"]["include"]
+    targets = LINK.findall(README)
+    for target in [t for t in targets if not t.startswith(("http", "#", "docs/", "examples/"))]:
+        assert target in include, target

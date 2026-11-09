@@ -1,14 +1,21 @@
 # Authors
 
-**Authorship of this product is pending confirmation by the project owners.**
+PlanLens (distributed as `planlens-agent`) is by, in this order:
 
-The research artifact this product descends from lists its authors as
-Nurdaulet Abdrakhman (primary and contact author) and Daniyal Kozyrev
-(coauthor); see that repository's `AUTHORS.md`. That is a statement about the
-research artifact, not about this codebase.
+| Author | Role |
+| --- | --- |
+| Nurdaulet Abdrakhman | Project lead and primary maintainer; primary project contact |
+| Daniyal Kozyrev | Co-author and contributor |
 
-Checkpoint A of this product was implemented by an AI coding assistant
-(Claude Code) working under the direction of the project owners and the
-research lead. Product authorship, copyright holders and contribution roles
-must be confirmed and recorded here, and in `NOTICE`, before any public
-release.
+Nurdaulet Abdrakhman leads the project and is responsible for its maintenance. Contact:
+[LinkedIn](https://www.linkedin.com/in/nurdaulet-abdrakhman-523784375).
+
+These names and roles were confirmed by the project owner.
+
+Implementation of this product used an AI coding assistant, Claude Code, under the project lead's direction.
+
+## Research artifact
+
+This product is separate from the PlanLens research artifact. That repository's `AUTHORS.md` lists Nurdaulet
+Abdrakhman (primary and contact author) and Daniyal Kozyrev (coauthor). That is a statement about the
+research artifact, whose own attribution and copyright are recorded there; see `NOTICE` and `PROVENANCE.md`.

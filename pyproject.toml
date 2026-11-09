@@ -14,6 +14,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Nurdaulet Abdrakhman" }, { name = "Daniyal Kozyrev" }]
+maintainers = [{ name = "Nurdaulet Abdrakhman" }]
 dependencies = []
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -24,6 +26,11 @@ classifiers = [
 [project.optional-dependencies]
 dev = ["pytest>=8", "jsonschema>=4.18"]
 
+[project.urls]
+Repository = "https://github.com/nurdauletabdurahman777-maker/planlens-agent"
+Issues = "https://github.com/nurdauletabdurahman777-maker/planlens-agent/issues"
+Contact = "https://www.linkedin.com/in/nurdaulet-abdrakhman-523784375"
+
 [project.scripts]
 planlens-agent = "planlens_agent.cli:main"
 
@@ -32,7 +39,7 @@ packages = ["src/planlens_agent"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src", "tests", "docs", "scripts", "examples", ".github", "README.md", "LICENSE", "NOTICE",
-           "AUTHORS.md", "PROVENANCE.md", "CHANGELOG.md", "pyproject.toml",
+           "AUTHORS.md", "CONTRIBUTING.md", "PROVENANCE.md", "CHANGELOG.md", "pyproject.toml",
            "uv.lock"]
 
 [tool.pytest.ini_options]
