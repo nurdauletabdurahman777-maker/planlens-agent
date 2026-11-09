@@ -179,8 +179,9 @@ Details: [Evidence and limits](docs/evidence.md). Names are provisional: [Naming
 
 ## Contributing and license
 
-See [CONTRIBUTING](CONTRIBUTING.md) for setup, checks and bug reports.
+Maintained by Nurdaulet Abdrakhman ([LinkedIn](https://www.linkedin.com/in/nurdaulet-abdrakhman-523784375)). See [AUTHORS](AUTHORS.md) for authors and
+[CONTRIBUTING](CONTRIBUTING.md) for setup, checks and bug reports.
 
-Licensed under the Apache License 2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). Authorship and copyright
-holders are pending; see [AUTHORS](AUTHORS.md). The OASIS SARIF schema in `tests/data/sarif/` is a separately
+Copyright 2026 Nurdaulet Abdrakhman. Licensed under the Apache License 2.0; see [LICENSE](LICENSE) and
+[NOTICE](NOTICE). The OASIS SARIF schema in `tests/data/sarif/` is a separately
 licensed test resource, outside Apache-2.0 and outside the wheel.
