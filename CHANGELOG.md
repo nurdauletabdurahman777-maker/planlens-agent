@@ -45,6 +45,13 @@ Fixed after independent review of B2-r2 (B2-r3)
   now refuse, with exit 2, an output that is the plan, contract, catalog, suite manifest or a
   candidate in use, including through other spellings, symlinks and hard links.
 
+Developer experience
+
+- README rebuilt around the journey; quickstart with an owner-defined workflow; evidence page.
+- An authored demo GIF, a static fallback and an inspector screenshot, generated from installed-wheel
+  output by `scripts/make_demo_media.py`.
+- `scripts/docs_check.py` and a `docs` CI stage run the copy-and-run blocks exactly as written.
+
 Fixed on hosted CI
 
 - `.gitattributes` keeps LF on every platform and leaves the vendored OASIS schema untouched.

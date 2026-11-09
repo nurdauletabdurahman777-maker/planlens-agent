@@ -15,6 +15,7 @@ python scripts/ci_local.py test --python 3.11    # pytest from uv.lock
 python scripts/ci_local.py package --python 3.11 # build, inspect the wheel, test the installed wheel
 python scripts/ci_local.py journey --python 3.14 # scripts/journey.py against the installed command
 python scripts/ci_local.py recipe --python 3.11  # hashed LangGraph lock, recipe tests, full journey
+python scripts/ci_local.py docs --python 3.14    # every copy-and-run block in the README and quickstart
 python scripts/ci_local.py all --python 3.14
 ```
 
@@ -34,6 +35,8 @@ with its exit status. `ruff format` also covers Python blocks in Markdown.
 | recipe, LangGraph 1.2.20 | Ubuntu 26.04 | 3.11, 3.14 | 31 passed; journey 67 of 67 |
 | consumer demo | Ubuntu 26.04 | 3.14 | passing gate passes; rejecting gate fails as intended |
 | SARIF upload | Ubuntu 26.04 | 3.14 | **refused**: code scanning is not enabled for this private repository |
+
+The table above was recorded at the first hosted verification. Later branches added two jobs: `pilot`, the capture tests on Ubuntu, macOS and Windows; and `docs`, which runs every copy-and-run block in `README.md` and `docs/quickstart.md` from a built wheel on Ubuntu and macOS.
 
 The 6 Ubuntu skips are the case-variant tests, which need a case-insensitive filesystem.
 The recipe was run on hosted Ubuntu only, and macOS arm64 locally; it has not run on Windows.

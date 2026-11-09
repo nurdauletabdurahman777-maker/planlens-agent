@@ -1,7 +1,7 @@
 # Real-planner trial
 
-Prepared, not run. **No model has been called and no planner output has been received.** This folder
-is for the pilot owner; testers do not need it.
+One saved-response trial has been run and reviewed; see the [evidence page](../../docs/evidence.md). This
+folder is for the pilot owner; testers do not need it.
 
 The first trial is fully specified in [`first-trial/`](first-trial/README.md). The rest of this page
 describes the tool in general.

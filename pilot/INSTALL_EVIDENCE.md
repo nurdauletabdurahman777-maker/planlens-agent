@@ -65,11 +65,11 @@ Run from the package with `--origin authored-example`. No planner was involved, 
 
 ## First-trial files
 
-`planner-trial/first-trial/` holds the frozen request and policy. No model has been called. The exact
+`planner-trial/first-trial/` holds the frozen request and policy. No model had been called when this was recorded. The exact
 capture command from its README was run once with an authored stand-in response and
 `--origin authored-example` in place of `--origin real-planner`: exit 1, `rejected`,
 `plan/prerequisite-order`.
 
 ## Not tried
 
-Linux and Windows for these instructions, any person other than the implementer, and any real planner.
+Linux and Windows for these instructions, and any person other than the implementer. The later planner trial is on the [evidence page](../docs/evidence.md).
