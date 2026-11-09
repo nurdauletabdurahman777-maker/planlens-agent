@@ -360,6 +360,38 @@ def build_inspector(report: Path, browser: object) -> None:
         )
 
 
+def build_finding_crops(report: Path, browser: object) -> None:
+    """Plain crops of the report's own layouts, so text is near full size in the README."""
+    crops = (("", 900, 2.0, "Next"), ("-narrow", 360, 3.0, "Why"))
+    for suffix, width, scale, last in crops:
+        for theme, ending in (("dark", ""), ("light", "-light")):
+            context = browser.new_context(  # type: ignore[attr-defined]
+                viewport={"width": width, "height": 900},
+                device_scale_factor=scale,
+                color_scheme=theme,
+            )
+            page = context.new_page()
+            page.goto(report.as_uri())
+            page.wait_for_timeout(300)
+            clip = page.evaluate(
+                """(last) => {
+                  const panel = document.querySelector('.findings-col').getBoundingClientRect();
+                  const label = [...document.querySelectorAll('.finding dt')]
+                    .find(d => d.textContent.trim() === last);
+                  const next = label.nextElementSibling.nextElementSibling;
+                  const bottom = next.getBoundingClientRect().top + window.scrollY - 2;
+                  const top = panel.top + window.scrollY;
+                  return {x: panel.left, y: top, width: panel.width, height: bottom - top};
+                }""",
+                last,
+            )
+            path = MEDIA / f"inspector-finding{suffix}{ending}.png"
+            page.screenshot(path=str(path), full_page=True, clip=clip)
+            context.close()
+            image = Image.open(path).convert("RGB")
+            image.quantize(colors=200, dither=Image.Dither.NONE).save(path, optimize=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--chrome", default=CHROME)
@@ -374,6 +406,7 @@ def main() -> None:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=args.chrome)
             build_inspector(report, browser)
+            build_finding_crops(report, browser)
             build_social(fonts, out, browser, tmp)
             browser.close()
     for path in sorted([*MEDIA.iterdir(), *BRAND.glob("*.svg")]):

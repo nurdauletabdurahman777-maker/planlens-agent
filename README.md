@@ -8,7 +8,7 @@
 <p align="center"><strong>Lint AI-agent plans before they run.</strong></p>
 
 <p align="center">
-  <a href="#install">Install</a> ·
+  <a href="#install-and-reproduce-it">Install</a> ·
   <a href="docs/quickstart.md">Quickstart</a> ·
   <a href="docs/README.md">Documentation</a> ·
   <a href="examples/README.md">Examples</a>
@@ -16,21 +16,81 @@
 
 <p align="center"><sub>Private pre-release · Python 3.11+ · Apache-2.0 · No runtime dependencies</sub></p>
 
-PlanLens checks a structured plan from an AI agent against rules you own, and reports exactly what is
-wrong before any step runs. It is for developers building plan-and-execute agents.
+PlanLens checks a sequential plan proposed by an AI agent against actions and workflow requirements you
+own, and returns a deterministic verdict with specific diagnostics before any step runs. It is for developers
+building plan-and-execute agents.
 
 It catches steps in the wrong order, missing required actions, references to artifacts no earlier step
 produces, and a deployment of a different build from the one that was tested.
 
-| You supply | Your agent proposes | PlanLens returns |
-| --- | --- | --- |
-| Trusted actions (a catalog) and workflow requirements (a contract) | A structured, sequential plan | A deterministic verdict, specific diagnostics and an optional execution gate |
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="docs/media/inspector-finding-narrow.png">
+  <source media="(max-width: 600px)" srcset="docs/media/inspector-finding-narrow-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/inspector-finding.png">
+  <img alt="PlanLens inspector finding for an authored plan: violation of plan/artifact-identity. Observed references: test_rc and scan_rc refer to build_rc.artifact, while deploy_prod refers to build_hotfix.artifact. Required: one planned artifact across the tests, the scan and the deployment." src="docs/media/inspector-finding-light.png">
+</picture>
 
-![Terminal demo. planlens-agent checks a bundled plan and rejects it with plan/artifact-identity because deploy_prod refers to build_hotfix.artifact while test_rc refers to build_rc.artifact. A copy of the plan is corrected, and the recheck reports PASS with exit 0.](docs/media/demo.gif)
+**A real report for an authored plan.** `test_rc` and `scan_rc` reference `build_rc.artifact`, while `deploy_prod`
+references `build_hotfix.artifact`, so the contract's same-artifact requirement fails. PlanLens compares the plan's
+declared references. It did not inspect artifact bytes, run tests or deploy anything, and it cannot tell which
+reference is the wrong one. [Full report image](docs/media/inspector.png).
 
-<sub>Authored example, excerpted from real installed-wheel output. Nothing was deployed. [Static image](docs/media/demo.png) · [Complete transcript](docs/media/demo-transcript.txt)</sub>
+## All required steps are present. Would you deploy this?
 
-## Install
+This is the plan behind that report. Build, tests, scan, review and deploy are all here, in a sensible order.
+
+```json
+    {"id": "build_rc", "action": "build", "description": "Release candidate"},
+    {"id": "build_hotfix", "action": "build", "description": "Rebuild with an untested patch"},
+    {"id": "test_rc", "action": "unit_tests", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "scan_rc", "action": "security_scan", "inputs": {"artifact": "build_rc.artifact"}},
+    {"id": "review", "action": "code_review"},
+    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_hotfix.artifact"}}
+```
+
+<sub>Fragment of the authored plan `plans/artifact-mismatch.json`: the steps only.</sub>
+
+<details>
+<summary><strong>Reveal the PlanLens diagnosis</strong></summary>
+
+<br>
+
+This is a saved result from the installed package, not a live check. [Reproduce it](#install-and-reproduce-it).
+
+**Rule:** `plan/artifact-identity`, from the contract rule `deploy-what-was-verified`.
+
+| Step | `artifact` input refers to |
+| --- | --- |
+| `test_rc` | `build_rc.artifact` |
+| `scan_rc` | `build_rc.artifact` |
+| `deploy_prod` | `build_hotfix.artifact` |
+
+Excerpt of the saved output:
+
+```text
+RESULT: REJECTED (exit 1) - 1 violation
+...
+    why:      The artifact that is deployed must be the one that was tested and scanned.
+```
+
+**One correction for this authored example,** on a copy of the plan. PlanLens reports that the references disagree; choosing which to change is yours. Here the plan describes `build_hotfix` as an untested patch, so the deployment changes:
+
+```diff
+-    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_hotfix.artifact"}}
++    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_rc.artifact"}}
+```
+
+**Recheck:**
+
+```text
+RESULT: PASS (exit 0) - 6 steps satisfy every supported required check
+```
+
+This checks the plan. Nothing was deployed. [Complete transcript](docs/media/demo-transcript.txt).
+
+</details>
+
+## Install and reproduce it
 
 You need Python 3.11 or newer (check `python3 --version`), Git, and read access to this private
 [repository](https://github.com/nurdauletabdurahman777-maker/planlens-agent). PlanLens is not on PyPI.
@@ -53,7 +113,8 @@ pip install --no-index wheelhouse/planlens_agent-0.1.0.dev0-py3-none-any.whl
 planlens-agent --version
 ```
 
-Try it on a bundled, authored example:
+Reproduce the rejection on the bundled, authored example. Expect `RESULT: REJECTED (exit 1)` and
+`plan/artifact-identity`:
 
 <!-- run exit=1 contains="RESULT: REJECTED (exit 1) - 1 violation" contains="plan/artifact-identity" -->
 ```sh
@@ -62,69 +123,35 @@ cd demo
 planlens-agent check plans/artifact-mismatch.json
 ```
 
-Exit status 0 means pass, 1 rejected, and 2 invalid input or unsupported requirements. The
-[Quickstart](docs/quickstart.md) continues from here, through correcting a plan and writing your own workflow.
+Exit status 0 means pass, 1 rejected, and 2 invalid input or unsupported requirements. Generate the report shown
+at the top of this page, and open `report.html` in a browser:
 
-## All required steps are present. Would you deploy this?
-
-Build, tests, scan, review and deploy are all here, in a sensible order.
-
-```json
-    {"id": "build_rc", "action": "build", "description": "Release candidate"},
-    {"id": "build_hotfix", "action": "build", "description": "Rebuild with an untested patch"},
-    {"id": "test_rc", "action": "unit_tests", "inputs": {"artifact": "build_rc.artifact"}},
-    {"id": "scan_rc", "action": "security_scan", "inputs": {"artifact": "build_rc.artifact"}},
-    {"id": "review", "action": "code_review"},
-    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_hotfix.artifact"}}
+<!-- run exit=1 contains="wrote report.html: REJECTED (exit 1), 1 finding" -->
+```sh
+planlens-agent inspect plans/artifact-mismatch.json --output report.html
 ```
 
-<sub>Fragment of the authored plan `plans/artifact-mismatch.json`: the steps only.</sub>
+![Terminal demo. planlens-agent checks a bundled plan and rejects it with plan/artifact-identity because deploy_prod refers to build_hotfix.artifact while test_rc refers to build_rc.artifact. A copy of the plan is corrected, and the recheck reports PASS with exit 0.](docs/media/demo.gif)
 
-<details>
-<summary><strong>Reveal the PlanLens diagnosis</strong></summary>
+<sub>Authored example, excerpted from real installed-wheel output. Nothing was deployed. [Static image](docs/media/demo.png) · [Complete transcript](docs/media/demo-transcript.txt)</sub>
 
-<br>
+The [Quickstart](docs/quickstart.md) continues from here, through correcting a plan and writing your own workflow.
 
-This is a saved result from the installed package, not a live check. Run the command above to reproduce it.
+## Integrate
 
-**Rule:** `plan/artifact-identity`, from the contract rule `deploy-what-was-verified`.
-
-| Step | `artifact` input refers to |
-| --- | --- |
-| `test_rc` | `build_rc.artifact` |
-| `scan_rc` | `build_rc.artifact` |
-| `deploy_prod` | `build_hotfix.artifact` |
-
-Excerpt of the saved output:
+PlanLens sits between your planner and whatever executes the plan.
 
 ```text
-RESULT: REJECTED (exit 1) - 1 violation
-...
-    why:      The artifact that is deployed must be the one that was tested and scanned.
+your planner
+  proposes a plan (JSON)
+    PlanLens checks it
+      pass: the gate dispatches it
+      reject: the gate dispatches nothing
 ```
 
-**Correction,** on a copy of the plan:
-
-```diff
--    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_hotfix.artifact"}}
-+    {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_rc.artifact"}}
-```
-
-**Recheck:**
-
-```text
-RESULT: PASS (exit 0) - 6 steps satisfy every supported required check
-```
-
-This checks the plan. Nothing was deployed. [Complete transcript](docs/media/demo-transcript.txt).
-
-</details>
-
-## How it works
-
-1. **You** supply a catalog of allowed actions and a contract of workflow requirements. The agent cannot change either.
-2. **Your agent** proposes an ordered plan as JSON. PlanLens treats it as untrusted.
-3. **PlanLens** checks the plan before anything runs and returns a verdict with specific diagnostics. Requirements it cannot evaluate end in exit 2 and are never silently passed.
+You supply a catalog of allowed actions and a contract of workflow requirements, and the agent cannot change
+either. The plan is treated as untrusted. Requirements PlanLens cannot evaluate end in exit 2 and are never
+silently passed.
 
 | Path | What it does | Guide |
 | --- | --- | --- |
@@ -135,25 +162,10 @@ This checks the plan. Nothing was deployed. [Complete transcript](docs/media/dem
 | Execution gate | `approve()` and `ReferenceRunner` dispatch only the exact plan that passed | [Integration](docs/integration.md), [LangGraph recipe](examples/langgraph_gate/README.md) |
 | CI | Workflows, exit statuses and reviewed baselines | [CI](docs/ci.md) |
 
-The inspector shows one check as a report, with the finding and the steps it involves. From `demo/`:
+## Scope and evidence
 
-<!-- run exit=1 contains="wrote report.html: REJECTED (exit 1), 1 finding" -->
-```sh
-planlens-agent inspect plans/artifact-mismatch.json --output report.html
-```
-
-<picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/media/inspector-light.png">
-  <img alt="PlanLens inspector report for the authored artifact-mismatch plan. A rejected verdict is at the top. The finding shows plan/artifact-identity with its observed references, requirement and next step. The proposed sequence marks test_rc and scan_rc as using build_rc.artifact and deploy_prod as using build_hotfix.artifact." src="docs/media/inspector.png">
-</picture>
-
-## What a pass means
-
-A pass means the **declared plan** satisfies your supported, required rules. It does not show that any step
-ran, that tests passed, or what was deployed. PlanLens is a library and a command: code that never calls it
-is not constrained by it.
-
-## Status
+A pass means the **declared plan** satisfies your supported, required rules. It does not show that any step ran,
+that tests passed, or what was deployed. Code that never calls PlanLens is not constrained by it.
 
 | Area | Current state |
 | --- | --- |
