@@ -47,7 +47,8 @@ Enforced by `tests/test_ci_files.py`:
 
 - `permissions: contents: read` by default; `security-events: write` and `actions: read` on the
   SARIF job alone (`upload-sarif` reads the workflow run on private repositories), and
-  `id-token: write` on the publish job of the manual `publish.yml` alone;
+  `id-token: write` on the publish job of the manual `publish.yml` alone, and `actions: read` where
+  that workflow's CI gate reads this repository's runs;
 - actions pinned to full commits; checkouts do not keep credentials;
 - no `pull_request_target`, `continue-on-error`, `|| true`, secrets or provider credentials;
 - diagnostic uploads use `if: always()`, so a failing gate keeps its evidence and stays failed;
