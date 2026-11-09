@@ -137,14 +137,17 @@ Details and limits: [Evidence](docs/evidence.md). The names are provisional: [Na
 
 ## Development
 
-```console
-uv venv && uv pip install -e ".[dev]"
-python -m pytest
-python scripts/ci_local.py all --python 3.14
-uv run --script scripts/make_demo_media.py
+You need [uv](https://docs.astral.sh/uv/). Run this from the root of your clone. No virtual environment
+has to be active: `uv run` creates `.venv` and uses it.
+
+<!-- run dev contains=" passed" -->
+```sh
+uv run --locked --extra dev pytest tests -q
 ```
 
-The last command regenerates `docs/media`. Pillow is used only by that script.
+From the same directory, `uv run --no-project --python 3.14 scripts/ci_local.py all --python 3.14` runs
+every CI stage. On macOS with Chrome, `uv run --script scripts/make_demo_media.py` regenerates `docs/media`.
+Pillow is used only by that script.
 
 Licensed under the Apache License 2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). Authorship and
 copyright holders are pending; see [AUTHORS](AUTHORS.md). The OASIS SARIF schema in `tests/data/sarif/` is

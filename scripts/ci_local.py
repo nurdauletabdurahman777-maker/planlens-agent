@@ -138,14 +138,35 @@ def docs(python: str, tmp: Path, log: Path | None) -> None:
         ["uv", "python", "find", "--no-project", python],
         capture_output=True, text=True, check=True,
     )  # fmt: skip
-    args: list[str | Path] = [
-        sys.executable, ROOT / "scripts" / "docs_check.py", ROOT / "README.md",
-        ROOT / "docs" / "quickstart.md", "--python", found.stdout.strip(),
-        "--work", tmp / "docs", "--wheel", wheel, "--checkout", ROOT,
-    ]  # fmt: skip
+    quickstart = ROOT / "docs" / "quickstart.md"
+
+    def check(*documents: Path, work: str) -> list[str | Path]:
+        return [
+            sys.executable, ROOT / "scripts" / "docs_check.py", *documents,
+            "--python", found.stdout.strip(), "--work", tmp / work,
+            "--wheel", wheel, "--checkout", ROOT,
+        ]  # fmt: skip
+
+    args = check(ROOT / "README.md", quickstart, work="docs")
     if log:
         args += ["--log", log]
     sh(*args, cwd=tmp)
+
+    # Negative control: a missing script in the middle of a block must fail the real quickstart.
+    text = quickstart.read_text(encoding="utf-8")
+    if "examples/sdk_check.py" not in text:
+        sys.exit("negative control: the quickstart no longer runs examples/sdk_check.py")
+    broken = tmp / "quickstart-missing-sdk.md"
+    broken.write_text(text.replace("examples/sdk_check.py", "examples/definitely-missing-sdk.py"))
+    command = [str(a) for a in check(broken, work="docs-negative")]
+    print("+ negative control:", " ".join(command), flush=True)
+    done = subprocess.run(command, cwd=tmp, capture_output=True, text=True, check=False)
+    if done.returncode != 1 or "definitely-missing-sdk.py" not in done.stdout:
+        print(done.stdout)
+        sys.exit(
+            "negative control failed: a missing SDK script did not fail the documentation check"
+        )
+    print("negative control: a missing SDK script fails the documentation check", flush=True)
 
 
 STAGES = {
