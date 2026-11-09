@@ -1,18 +1,17 @@
 # PlanLens
 
-**Lint AI-agent plans before they run.**
+**Catch plan errors before execution.**
 
-PlanLens checks a sequential plan proposed by an AI agent against actions and workflow requirements you
-own, and returns a deterministic verdict with specific diagnostics before any step runs. It is for developers
-building plan-and-execute agents.
+Check structured AI-agent plans against your workflow rules. See which requirement failed and the steps involved.
 
-It catches steps in the wrong order, missing required actions, references to artifacts no earlier step
-produces, and a deployment of a different build from the one that was tested.
+![Walkthrough of an authored example. An authored plan has test_rc and scan_rc reference build_rc.artifact while deploy_prod references build_hotfix.artifact. PlanLens rejects it with plan/artifact-identity and the Inspector shows the references that disagree. A person edits a copy of the plan so deploy_prod references build_rc.artifact, and the recheck reports PASS. Nothing is built, tested or deployed.](https://raw.githubusercontent.com/nurdauletabdurahman777-maker/planlens-agent/v0.1.0/docs/media/demo.gif)
 
-![PlanLens inspector finding for an authored plan: violation of plan/artifact-identity. Observed references: test_rc and scan_rc refer to build_rc.artifact, while deploy_prod refers to build_hotfix.artifact. Required: one planned artifact across the tests, the scan and the deployment.](https://raw.githubusercontent.com/nurdauletabdurahman777-maker/planlens-agent/v0.1.0/docs/media/inspector-finding-light.png)
+*Authored example. PlanLens compares the references a plan declares: nothing is built, tested or deployed, and a person makes the
+edit. On-screen notes are editorial.*
 
-*A real report for an authored plan. PlanLens compared the plan's declared references. It did not inspect
-artifact bytes, run tests or deploy anything.*
+For developers building plan-and-execute agents. PlanLens reads one structured, sequential plan and checks it, like a linter, against
+actions and workflow rules you own: required actions, step order, artifact references and same-artifact rules. It does not run your
+steps.
 
 ## Install
 

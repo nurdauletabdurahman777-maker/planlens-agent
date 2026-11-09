@@ -18,7 +18,7 @@ by the `pypi` GitHub environment. If one of those stops the sequence, the author
 | Repository, distribution, CLI | `planlens-agent` |
 | Python module | `planlens_agent` |
 | Version and tag | `0.1.0`, `v0.1.0` |
-| Release title | PlanLens v0.1.0 — Lint AI-agent plans before they run |
+| Release title | PlanLens v0.1.0 — Catch plan errors before execution |
 | Publishing method | PyPI Trusted Publishing through GitHub OIDC |
 | Workflow, environment | `.github/workflows/publish.yml`, `pypi` |
 
@@ -60,7 +60,9 @@ what to do about each one is an owner decision.
 
 - Every pushed branch, including development and pilot branches: `git ls-remote --heads origin`.
 - Every commit's author name, email address and trailers:
-  `git log --all --format='%h %an <%ae> %(trailers:only,unfold)'`.
+  `git log --all --format='%h %an <%ae> %(trailers:only,unfold)'`. Git history is not the only place a commit
+  email is kept: GitHub also returns it from retained workflow runs and check suites, and serves old commits by
+  ID. Confirm what the repository to be published actually holds, not only the local history.
 - Files that become public on merge, such as `pilot/`: `git ls-tree -r --name-only COMMIT`.
 - Actions run history, logs and retained artifacts from the private period:
   `gh run list -R REPO --limit 200` and `gh api repos/REPO/actions/artifacts`.
@@ -172,7 +174,7 @@ cd release-pair/dist
 shasum -a 256 -c ../SHA256SUMS
 cd ../..
 gh release create v0.1.0 -R REPO --verify-tag \
-  --title "PlanLens v0.1.0 — Lint AI-agent plans before they run" \
+  --title "PlanLens v0.1.0 — Catch plan errors before execution" \
   --notes-file release/NOTES_0.1.0.md \
   release-pair/dist/* release-pair/SHA256SUMS
 ```
