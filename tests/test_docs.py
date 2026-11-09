@@ -79,7 +79,7 @@ def test_an_inline_comment_is_refused_because_zsh_would_run_it() -> None:
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 PLAN = (TEMPLATE / "plans" / "artifact-mismatch.json").read_text(encoding="utf-8")
 TRANSCRIPT = (ROOT / "docs" / "media" / "demo-transcript.txt").read_text(encoding="utf-8")
-CASE = README[README.index("## All required steps") : README.index("## How it works")]
+CASE = README[README.index("## All required steps") : README.index("## Install and reproduce it")]
 
 
 def test_images_have_descriptive_alt_text_and_reasonable_size() -> None:
@@ -92,6 +92,10 @@ def test_images_have_descriptive_alt_text_and_reasonable_size() -> None:
         "demo.png": 200_000,
         "inspector.png": 500_000,
         "inspector-light.png": 500_000,
+        "inspector-finding.png": 300_000,
+        "inspector-finding-light.png": 300_000,
+        "inspector-finding-narrow.png": 300_000,
+        "inspector-finding-narrow-light.png": 300_000,
         "social-preview.png": 1_000_000,
     }
     for name, limit in limits.items():
@@ -99,21 +103,36 @@ def test_images_have_descriptive_alt_text_and_reasonable_size() -> None:
 
 
 def test_the_opening_answers_the_first_questions() -> None:
-    opening = README[: README.index("## Install")]
+    opening = README[: README.index("## All required steps")]
     assert "Lint AI-agent plans before they run." in opening
     for phrase in (
         "plan-and-execute agents",
         "wrong order",
-        "catalog",
-        "contract",
+        "actions and workflow requirements",
         "sequential plan",
         "deterministic verdict",
-        "execution gate",
-        "#install",
-        "authored example",
+        "#install-and-reproduce-it",
+        "authored plan",
         "private pre-release",
     ):
         assert phrase.lower() in opening.lower(), phrase
+
+
+def test_the_primary_preview_states_the_mismatch_in_text_and_its_limits() -> None:
+    opening = README[: README.index("## All required steps")]
+    assert "<picture>" in opening and "demo.gif" not in opening
+    for phrase in (
+        "`test_rc` and `scan_rc` reference `build_rc.artifact`",
+        "`deploy_prod`\nreferences `build_hotfix.artifact`",
+        "did not inspect artifact bytes, run tests or deploy anything",
+        "cannot tell which\nreference is the wrong one",
+    ):
+        assert phrase in opening, phrase
+
+
+def test_the_preview_selects_by_width_and_theme() -> None:
+    for name in ("inspector-finding-narrow.png", "inspector-finding-narrow-light.png"):
+        assert 'media="(max-width: 600px)' in README and f"docs/media/{name}" in README
 
 
 @pytest.mark.parametrize(
