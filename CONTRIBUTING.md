@@ -13,7 +13,7 @@ git clone --branch launch/developer-experience \
 Run everything below from the root of the clone. No virtual environment has to be active: `uv run` creates
 `.venv` and uses it.
 
-<!-- run dev contains=" passed" contains="success" -->
+<!-- run dev contains=" passed" contains="Success: no issues found" -->
 ```sh
 uv run --locked --extra dev pytest tests -q
 uvx ruff@0.17.4 format --check .

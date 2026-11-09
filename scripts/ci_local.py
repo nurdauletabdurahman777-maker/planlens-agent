@@ -74,7 +74,7 @@ def package(python: str, tmp: Path, log: Path | None) -> None:
             sys.exit(f"wheel is missing {wanted}")
     if any("tests/data" in n or "langgraph" in n for n in names):
         sys.exit("wheel contains test data or the framework recipe")
-    if any(n.endswith((".gif", ".png")) or "docs/" in n or "scripts/" in n for n in names):
+    if any(n.endswith((".gif", ".png", ".svg")) or "docs/" in n or "scripts/" in n for n in names):
         sys.exit("wheel contains media or development tooling")
     required = [x for x in metadata.splitlines() if x.startswith("Requires-Dist:")]
     if [x for x in required if "extra ==" not in x]:

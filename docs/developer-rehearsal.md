@@ -6,7 +6,7 @@ running it built the tool, and command execution times say nothing about how lon
 
 | Item | Value |
 | --- | --- |
-| Instructions followed | `README.md` and `docs/quickstart.md`, every copy-and-run block, as written |
+| Instructions followed | `README.md`, `docs/quickstart.md` and `CONTRIBUTING.md`, every copy-and-run block, as written |
 | Runner | `scripts/docs_check.py`, which executes the blocks and checks every command's exit status and the output |
 | Platform | macOS 26.6.2 arm64, in `zsh`, the macOS default shell |
 | Python | CPython 3.14.7 and CPython 3.11.15, separately |
@@ -39,7 +39,7 @@ Identical on both Python versions. Every plan is authored.
 | 7 | LangGraph install | `pip install --require-hashes -r …/requirements.lock` | 0 | LangGraph 1.2.20 |
 | 7 | Gate, valid plan | `python …/gate.py plans/valid.json` | 0 | `executed`, 6 handler calls |
 | 8 | Gate, rejected plan | `python …/gate.py plans/artifact-mismatch.json` | 1 | `rejected`, **0 handler calls** |
-| 9 | Development tests | `uv run --locked --extra dev pytest tests -q`, from the clone's root in a clean shell | 0 | Passed |
+| 9 | Development checks | `uv run --locked --extra dev pytest tests -q`, Ruff and strict mypy, from the clone's root in a clean shell | 0 | Passed |
 
 The handlers in the LangGraph demo only record that they were called. No production action ran.
 
@@ -63,7 +63,7 @@ The handlers in the LangGraph demo only record that they were called. No product
 
 - Following these instructions on Linux or Windows. The hosted `docs` job runs the blocks on Ubuntu and
   macOS with a prebuilt wheel, so it does not cover the clone step. Windows has not run them.
-- The README's other development commands (all CI stages, media regeneration) are too long or macOS-specific
+- The contributor guide's other commands (all CI stages, media regeneration) are too long or macOS-specific
   for the docs check. Each was run once from a clean shell in a separate clone, on macOS.
 - `open report.html`, which opens a window. The report was opened in headless Chrome 156 instead. No other
   browser was tried.
