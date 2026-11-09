@@ -1,5 +1,9 @@
 # planlens-agent private pilot
 
+> **Historical.** This page was written for the private pilot package, and describes that package as it was. For
+> current status, authorship and copyright, see the repository's [README](../README.md), [AUTHORS](../AUTHORS.md)
+> and [NOTICE](../NOTICE).
+
 `planlens-agent` checks an AI agent's structured plan against workflow rules you own, before
 anything runs, and says specifically what is wrong.
 
@@ -118,4 +122,4 @@ handler calls: 0
 
 It checks one declared, ordered, sequential plan. It does not run your actions, see what actually
 happened, or check parallel graphs and tool traces. Nothing is sent anywhere: the tool has no
-telemetry. Authorship and copyright details in `NOTICE` and `AUTHORS.md` are still pending.
+telemetry. For authorship and copyright, see [AUTHORS](../AUTHORS.md) and [NOTICE](../NOTICE).

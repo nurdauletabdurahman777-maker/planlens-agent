@@ -81,17 +81,18 @@ def test_an_inline_comment_is_refused_because_zsh_would_run_it() -> None:
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 PLAN = (TEMPLATE / "plans" / "artifact-mismatch.json").read_text(encoding="utf-8")
 TRANSCRIPT = (ROOT / "docs" / "media" / "demo-transcript.txt").read_text(encoding="utf-8")
-CASE = README[README.index("## All required steps") : README.index("## Install and reproduce it")]
+CASE = README[README.index("## The example in detail") : README.index("## Integrate")]
+OPENING = README[: README.index("## Install and try it")]
 
 
 def test_images_have_descriptive_alt_text_and_reasonable_size() -> None:
-    markdown = IMAGE.findall(README)
-    assert [Path(path).name for _, path in markdown] == ["demo.gif"]
-    assert len(markdown[0][0]) > 80
+    assert len(re.search(r'alt="(Walkthrough of an authored example[^"]+)"', README).group(1)) > 80  # type: ignore[union-attr]
     assert len(re.search(r'alt="(PlanLens inspector[^"]+)"', README).group(1)) > 80  # type: ignore[union-attr]
     limits = {
-        "demo.gif": 300_000,
-        "demo.png": 200_000,
+        "demo.gif": 600_000,
+        "demo.png": 400_000,
+        "demo-narrow.gif": 600_000,
+        "demo-narrow.png": 500_000,
         "inspector.png": 500_000,
         "inspector-light.png": 500_000,
         "inspector-finding.png": 300_000,
@@ -104,37 +105,92 @@ def test_images_have_descriptive_alt_text_and_reasonable_size() -> None:
         assert (ROOT / "docs" / "media" / name).stat().st_size < limit, name
 
 
-def test_the_opening_answers_the_first_questions() -> None:
-    opening = README[: README.index("## All required steps")]
-    assert "Lint AI-agent plans before they run." in opening
+def test_the_opening_is_the_hero_and_one_explanation() -> None:
+    assert '<h1 align="center">Catch plan errors before execution.</h1>' in OPENING
+    assert (
+        "Check structured AI-agent plans against your workflow rules. "
+        "See which requirement failed and the steps involved." in OPENING
+    )
+    assert OPENING.index("Catch plan errors") < OPENING.index("Check structured")
+    assert OPENING.index("Check structured") < OPENING.index("docs/media/demo.gif")
+
+
+def test_the_old_slogan_is_gone_and_the_hero_is_not_repeated() -> None:
+    for text in (README, (ROOT / "README.pypi.md").read_text(encoding="utf-8")):
+        assert "Lint AI-agent plans" not in text
+        assert text.count("Catch plan errors before execution") == 1
+
+
+def test_the_opening_states_its_audience_and_scope() -> None:
     for phrase in (
         "plan-and-execute agents",
-        "wrong order",
-        "actions and workflow requirements",
-        "sequential plan",
-        "deterministic verdict",
-        "#install-and-reproduce-it",
-        "authored plan",
+        "structured, sequential plan",
+        "required actions, step order, artifact references and same-artifact rules",
+        "does not\nrun your steps",
+        "#install-and-try-it",
         "first public release",
     ):
-        assert phrase.lower() in opening.lower(), phrase
+        assert phrase.lower() in OPENING.lower(), phrase
 
 
-def test_the_primary_preview_states_the_mismatch_in_text_and_its_limits() -> None:
-    opening = README[: README.index("## All required steps")]
-    assert "<picture>" in opening and "demo.gif" not in opening
+def test_one_primary_visual_comes_before_the_details() -> None:
+    assert OPENING.count("<img") == 2  # the wordmark and the walkthrough
+    assert README.index("docs/media/demo.gif") < README.index("## Install and try it")
+    assert README.index("## Install and try it") < README.index("```json")
+    assert README.index("## Install and try it") < README.index("inspector-finding")
+    assert "inspector-finding" not in OPENING
+
+
+def test_the_walkthrough_has_narrow_and_motion_free_versions() -> None:
+    assert 'media="(max-width: 600px)" srcset="docs/media/demo-narrow.gif"' in OPENING
+    assert 'media="(prefers-reduced-motion: reduce)" srcset="docs/media/demo.png"' in OPENING
+    assert (
+        'media="(prefers-reduced-motion: reduce) and (max-width: 600px)" '
+        'srcset="docs/media/demo-narrow.png"' in OPENING
+    )
+    assert OPENING.index("prefers-reduced-motion") < OPENING.index(
+        '(max-width: 600px)" srcset="docs/media/demo-narrow.gif'
+    )
+    assert '<a href="docs/media/demo.png">Static version</a>' in OPENING
+
+
+def test_the_caption_keeps_the_limits_visible_and_the_edit_human() -> None:
+    (caption,) = [x for x in OPENING.splitlines() if "Authored example" in x and "<sub>" in x]
+    for phrase in (
+        "Authored example",
+        "references a plan declares",
+        "nothing is built, tested or deployed",
+        "a person makes the edit",
+        "editorial",
+    ):
+        assert phrase in caption, phrase
+
+
+def test_the_walkthrough_notes_do_not_claim_a_repair() -> None:
+    source = (ROOT / "scripts" / "make_demo_media.py").read_text(encoding="utf-8")
+    for phrase in (
+        "A person edits a copy of the plan. PlanLens does not change plans.",
+        "Nothing was built, tested or deployed.",
+        "Editorial note",
+        "Authored example",
+    ):
+        assert phrase in source, phrase
+    assert "assert 12 <= total <= 18" in source
+
+
+def test_the_inspector_evidence_states_its_limits() -> None:
     for phrase in (
         "`test_rc` and `scan_rc` reference `build_rc.artifact`",
         "`deploy_prod`\nreferences `build_hotfix.artifact`",
         "did not inspect artifact bytes, run tests or deploy anything",
         "cannot tell which\nreference is the wrong one",
     ):
-        assert phrase in opening, phrase
+        assert phrase in CASE, phrase
 
 
-def test_the_preview_selects_by_width_and_theme() -> None:
+def test_the_inspector_evidence_selects_by_width_and_theme() -> None:
     for name in ("inspector-finding-narrow.png", "inspector-finding-narrow-light.png"):
-        assert 'media="(max-width: 600px)' in README and f"docs/media/{name}" in README
+        assert 'media="(max-width: 600px)' in CASE and f"docs/media/{name}" in CASE
 
 
 @pytest.mark.parametrize(
@@ -160,7 +216,9 @@ def test_the_brand_has_both_themes() -> None:
 
 def test_the_case_is_collapsed_and_labelled() -> None:
     assert "<details>" in CASE and "<details open" not in CASE
-    assert "<summary><strong>Reveal the PlanLens diagnosis</strong></summary>" in CASE
+    for summary in ("The plan's steps", "The diagnosis and a correction", "The Inspector report"):
+        assert f"<summary><strong>{summary}</strong></summary>" in CASE
+    assert CASE.count("<details>") == CASE.count("</details>") == 3
     assert "Fragment of the authored plan" in CASE
     assert "saved result" in CASE
 

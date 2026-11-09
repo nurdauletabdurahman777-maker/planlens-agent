@@ -1,14 +1,27 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/brand/planlens-wordmark-dark.svg">
-    <img alt="PlanLens" src="docs/brand/planlens-wordmark-light.svg" width="300">
+    <img alt="PlanLens" src="docs/brand/planlens-wordmark-light.svg" width="220">
   </picture>
 </p>
 
-<p align="center"><strong>Lint AI-agent plans before they run.</strong></p>
+<h1 align="center">Catch plan errors before execution.</h1>
+
+<p align="center">Check structured AI-agent plans against your workflow rules. See which requirement failed and the steps involved.</p>
 
 <p align="center">
-  <a href="#install-and-reproduce-it">Install</a> ·
+  <picture>
+    <source media="(prefers-reduced-motion: reduce) and (max-width: 600px)" srcset="docs/media/demo-narrow.png">
+    <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/demo.png">
+    <source media="(max-width: 600px)" srcset="docs/media/demo-narrow.gif">
+    <img alt="Walkthrough of an authored example. An authored plan has test_rc and scan_rc reference build_rc.artifact while deploy_prod references build_hotfix.artifact. PlanLens rejects it with plan/artifact-identity and the Inspector shows the references that disagree. A person edits a copy of the plan so deploy_prod references build_rc.artifact, and the recheck reports PASS. Nothing is built, tested or deployed." src="docs/media/demo.gif" width="100%">
+  </picture>
+</p>
+
+<p align="center"><sub>Authored example. PlanLens compares the references a plan declares: nothing is built, tested or deployed, and a person makes the edit. On-screen notes are editorial. <a href="docs/media/demo.png">Static version</a> · <a href="docs/media/demo-transcript.txt">Complete transcript</a></sub></p>
+
+<p align="center">
+  <a href="#install-and-try-it">Install</a> ·
   <a href="docs/quickstart.md">Quickstart</a> ·
   <a href="docs/README.md">Documentation</a> ·
   <a href="examples/README.md">Examples</a>
@@ -16,28 +29,51 @@
 
 <p align="center"><sub>First public release · Python 3.11+ · Apache-2.0 · No runtime dependencies</sub></p>
 
-PlanLens checks a sequential plan proposed by an AI agent against actions and workflow requirements you
-own, and returns a deterministic verdict with specific diagnostics before any step runs. It is for developers
-building plan-and-execute agents.
+**For developers building plan-and-execute agents.** PlanLens reads one structured, sequential plan and checks it, like a linter,
+against actions and workflow rules you own: required actions, step order, artifact references and same-artifact rules. It does not
+run your steps. A pass means the declared plan meets your rules.
 
-It catches steps in the wrong order, missing required actions, references to artifacts no earlier step
-produces, and a deployment of a different build from the one that was tested.
+## Install and try it
 
-<picture>
-  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="docs/media/inspector-finding-narrow.png">
-  <source media="(max-width: 600px)" srcset="docs/media/inspector-finding-narrow-light.png">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/media/inspector-finding.png">
-  <img alt="PlanLens inspector finding for an authored plan: violation of plan/artifact-identity. Observed references: test_rc and scan_rc refer to build_rc.artifact, while deploy_prod refers to build_hotfix.artifact. Required: one planned artifact across the tests, the scan and the deployment." src="docs/media/inspector-finding-light.png">
-</picture>
+You need Python 3.11 or newer; check with `python3 --version`. Installation downloads the package once. It has
+no runtime dependencies, and after that it runs offline, with no model account and no telemetry. If something
+fails, see [Troubleshooting](docs/quickstart.md#troubleshooting).
 
-**A real report for an authored plan.** `test_rc` and `scan_rc` reference `build_rc.artifact`, while `deploy_prod`
-references `build_hotfix.artifact`, so the contract's same-artifact requirement fails. PlanLens compares the plan's
-declared references. It did not inspect artifact bytes, run tests or deploy anything, and it cannot tell which
-reference is the wrong one. [Full report image](docs/media/inspector.png).
+<!-- run contains="planlens-agent 0.1.0" -->
+```sh
+python3 -m venv planlens-env
+. planlens-env/bin/activate
+python -m pip install "planlens-agent==0.1.0"
+planlens-agent --version
+```
 
-## All required steps are present. Would you deploy this?
+Reproduce the rejection on the bundled, authored example. Expect `RESULT: REJECTED (exit 1)` and
+`plan/artifact-identity`:
 
-This is the plan behind that report. Build, tests, scan, review and deploy are all here, in a sensible order.
+<!-- run exit=1 contains="RESULT: REJECTED (exit 1) - 1 violation" contains="plan/artifact-identity" -->
+```sh
+planlens-agent init release-basic demo
+cd demo
+planlens-agent check plans/artifact-mismatch.json
+```
+
+Exit status 0 means pass, 1 rejected, and 2 invalid input or unsupported requirements. Generate the Inspector
+report, and open `report.html` in a browser:
+
+<!-- run exit=1 contains="wrote report.html: REJECTED (exit 1), 1 finding" -->
+```sh
+planlens-agent inspect plans/artifact-mismatch.json --output report.html
+```
+
+The [Quickstart](docs/quickstart.md) continues from here, through correcting a plan and writing your own workflow.
+To work from source, see [CONTRIBUTING](CONTRIBUTING.md).
+
+## The example in detail
+
+The evidence behind the walkthrough. Build, tests, scan, review and deploy are all present, in a sensible order.
+
+<details>
+<summary><strong>The plan's steps</strong></summary>
 
 ```json
     {"id": "build_rc", "action": "build", "description": "Release candidate"},
@@ -50,12 +86,16 @@ This is the plan behind that report. Build, tests, scan, review and deploy are a
 
 <sub>Fragment of the authored plan `plans/artifact-mismatch.json`: the steps only.</sub>
 
+<sub>Fragment of the authored plan `plans/artifact-mismatch.json`: the steps only.</sub>
+
+</details>
+
 <details>
-<summary><strong>Reveal the PlanLens diagnosis</strong></summary>
+<summary><strong>The diagnosis and a correction</strong></summary>
 
 <br>
 
-This is a saved result from the installed package, not a live check. [Reproduce it](#install-and-reproduce-it).
+This is a saved result from the installed package, not a live check. [Reproduce it](#install-and-try-it).
 
 **Rule:** `plan/artifact-identity`, from the contract rule `deploy-what-was-verified`.
 
@@ -90,44 +130,22 @@ This checks the plan. Nothing was deployed. [Complete transcript](docs/media/dem
 
 </details>
 
-## Install and reproduce it
+<details>
+<summary><strong>The Inspector report</strong></summary>
 
-You need Python 3.11 or newer; check with `python3 --version`. Installation downloads the package once. It has
-no runtime dependencies, and after that it runs offline, with no model account and no telemetry. If something
-fails, see [Troubleshooting](docs/quickstart.md#troubleshooting).
+<picture>
+  <source media="(max-width: 600px) and (prefers-color-scheme: dark)" srcset="docs/media/inspector-finding-narrow.png">
+  <source media="(max-width: 600px)" srcset="docs/media/inspector-finding-narrow-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/inspector-finding.png">
+  <img alt="PlanLens inspector finding for an authored plan: violation of plan/artifact-identity. Observed references: test_rc and scan_rc refer to build_rc.artifact, while deploy_prod refers to build_hotfix.artifact. Required: one planned artifact across the tests, the scan and the deployment." src="docs/media/inspector-finding-light.png">
+</picture>
 
-<!-- run contains="planlens-agent 0.1.0" -->
-```sh
-python3 -m venv planlens-env
-. planlens-env/bin/activate
-python -m pip install "planlens-agent==0.1.0"
-planlens-agent --version
-```
+**A real report for an authored plan.** `test_rc` and `scan_rc` reference `build_rc.artifact`, while `deploy_prod`
+references `build_hotfix.artifact`, so the contract's same-artifact requirement fails. PlanLens compares the plan's
+declared references. It did not inspect artifact bytes, run tests or deploy anything, and it cannot tell which
+reference is the wrong one. [Full report image](docs/media/inspector.png).
 
-Reproduce the rejection on the bundled, authored example. Expect `RESULT: REJECTED (exit 1)` and
-`plan/artifact-identity`:
-
-<!-- run exit=1 contains="RESULT: REJECTED (exit 1) - 1 violation" contains="plan/artifact-identity" -->
-```sh
-planlens-agent init release-basic demo
-cd demo
-planlens-agent check plans/artifact-mismatch.json
-```
-
-Exit status 0 means pass, 1 rejected, and 2 invalid input or unsupported requirements. Generate the report shown
-at the top of this page, and open `report.html` in a browser:
-
-<!-- run exit=1 contains="wrote report.html: REJECTED (exit 1), 1 finding" -->
-```sh
-planlens-agent inspect plans/artifact-mismatch.json --output report.html
-```
-
-![Terminal demo. planlens-agent checks a bundled plan and rejects it with plan/artifact-identity because deploy_prod refers to build_hotfix.artifact while test_rc refers to build_rc.artifact. A copy of the plan is corrected, and the recheck reports PASS with exit 0.](docs/media/demo.gif)
-
-<sub>Authored example, excerpted from real installed-wheel output. Nothing was deployed. [Static image](docs/media/demo.png) · [Complete transcript](docs/media/demo-transcript.txt)</sub>
-
-The [Quickstart](docs/quickstart.md) continues from here, through correcting a plan and writing your own workflow.
-To work from source, see [CONTRIBUTING](CONTRIBUTING.md).
+</details>
 
 ## Integrate
 

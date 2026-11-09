@@ -144,6 +144,25 @@ def test_an_authorization_never_overrides_the_technical_gates() -> None:
     assert "Approval for one step does not extend" not in PUBLISHING
 
 
+def test_the_positioning_is_consistent_in_metadata_and_the_release_title() -> None:
+    assert PROJECT["description"].startswith("Catch plan errors before execution")
+    assert "Lint AI-agent" not in PROJECT["description"] + PUBLISHING
+    assert PUBLISHING.count("PlanLens v0.1.0 — Catch plan errors before execution") == 2
+    assert PROJECT["name"] == "planlens-agent" and PROJECT["license"] == "Apache-2.0"
+
+
+def test_provenance_separates_the_original_snapshot_from_the_current_state() -> None:
+    text = (ROOT / "PROVENANCE.md").read_text(encoding="utf-8")
+    assert text.index("**original snapshot**") < text.index("Created locally on 2026-11-06")
+    assert "has gained a commit history and a GitHub remote" in text
+
+
+def test_pilot_documentation_is_marked_historical_and_points_to_current_files() -> None:
+    text = (ROOT / "pilot" / "README.md").read_text(encoding="utf-8")
+    assert "**Historical.**" in text and "still pending" not in text
+    assert "[AUTHORS](../AUTHORS.md)" in text and "[NOTICE](../NOTICE)" in text
+
+
 def test_the_launch_steps_are_in_the_agreed_order() -> None:
     steps = [
         "Review the final candidate",

@@ -2,6 +2,10 @@
 
 ## This repository
 
+The list below is the **original snapshot**, kept as a record of how the repository began. Since then the
+repository has gained a commit history and a GitHub remote: see `git log` and [CHANGELOG](CHANGELOG.md) for its
+current state.
+
 - Created locally on 2026-11-06 as an independent Git repository named
   `planlens-agent`, alongside (not inside) the research checkout; branch `main`.
 - It is not a branch, fork or worktree of the research artifact, and it has

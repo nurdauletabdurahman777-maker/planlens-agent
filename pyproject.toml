@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 # command "planlens". PyPI registration is pending.
 name = "planlens-agent"
 version = "0.1.0"
-description = "Lint AI-agent plans before they run: check structured plans against owner-supplied workflow requirements."
+description = "Catch plan errors before execution: check structured AI-agent plans against your workflow rules."
 readme = "README.pypi.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"

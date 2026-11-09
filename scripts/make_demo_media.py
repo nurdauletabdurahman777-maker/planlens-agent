@@ -7,10 +7,10 @@
     uv run --script scripts/make_demo_media.py [--chrome PATH]
 
 Builds the wheel, installs it in a temporary environment and runs the authored demo with relative
-paths. Terminal media shows an excerpt of what the commands printed, wrapped at word boundaries;
-the renderer adds colour and captions but changes no character. The complete output is written to
-docs/media/demo-transcript.txt. Exit statuses are asserted. Inspector images are real Chrome
-screenshots of the report that run generated.
+paths. The walkthrough shows excerpts of what the commands printed, wrapped at word boundaries, and
+a real Chrome capture of the report that run generated. Colour and the captions are editorial: they
+change no character of the output. The complete output is written to docs/media/demo-transcript.txt.
+Exit statuses are asserted.
 
 Development tooling only: nothing here is a project dependency. Needs uv, Google Chrome and the
 network, to download the pinned open-licensed fonts (see docs/brand/README.md).
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import html
 import io
 import json
 import subprocess
@@ -31,7 +32,7 @@ from pathlib import Path
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,7 +59,9 @@ THEMES = {
 }
 BG, FG, DIM, PROMPT = "#0D1117", "#E6EDF3", "#8B949E", "#7EE787"
 RED, GREEN, STRIP_BG, ACCENT, OTHER = "#FF7B72", "#56D364", "#161B22", "#F59E0B", "#79C0FF"
-WIDTH, SIZE, LINE, PAD, STRIP = 1040, 20, 28, 28, 50
+# Scene geometry. The GIFs are shown at about 830 and 358 CSS pixels wide, so type stays readable.
+DESKTOP = {"width": 1200, "height": 660, "mono": 24, "note": 29, "tag": 20, "pad": 36, "cols": 72}
+NARROW = {"width": 720, "height": 1180, "mono": 29, "note": 35, "tag": 24, "pad": 30, "cols": 37}
 FAIL = "plans/artifact-mismatch.json"
 SED = f"sed 's/build_hotfix.artifact/build_rc.artifact/' {FAIL} > my-plan.json"
 WRONG, RIGHT = "build_hotfix.artifact", "build_rc.artifact"
@@ -104,7 +107,9 @@ def capture(tmp: Path) -> tuple[Path, dict[str, str]]:
     out = {"check": expect(1, "check", FAIL)}
     out["json"] = sh(cli, "check", FAIL, "--format", "json", cwd=demo).stdout
     assert str(tmp) not in out["json"]
-    (demo / "my-plan.json").write_text((demo / FAIL).read_text().replace(WRONG, RIGHT))
+    out["plan"] = (demo / FAIL).read_text()
+    (demo / "my-plan.json").write_text(out["plan"].replace(WRONG, RIGHT))
+    out["fixed"] = (demo / "my-plan.json").read_text()
     diff = sh("diff", FAIL, "my-plan.json", cwd=demo)
     assert diff.returncode == 1
     out["diff"] = diff.stdout
@@ -151,108 +156,211 @@ def pick(output: str, *prefixes: str) -> list[str]:
     return found
 
 
-class Screen:
-    def __init__(self, fonts: dict[str, Path]) -> None:
-        self.regular = ImageFont.truetype(str(fonts["mono"]), SIZE)
-        self.bold = ImageFont.truetype(str(fonts["bold"]), SIZE)
-        self.char = self.regular.getlength("M")
-        self.cols = int((WIDTH - 2 * PAD) / self.char)
-
-    def lines(self, *raw: str) -> list[str]:
-        return [part for line in raw for part in wrap(line, self.cols)]
-
-    def draw_line(self, draw: ImageDraw.ImageDraw, y: int, text: str, emphasis: bool) -> None:
-        font, colour = self.regular, FG
-        if text.startswith("$ "):
-            draw.text((PAD, y), "$", font=self.bold, fill=PROMPT)
-            draw.text((PAD + 2 * self.char, y), text[2:], font=self.bold, fill=FG)
-            return
-        if text == OMITTED:
-            draw.text((PAD, y), text, font=self.regular, fill=DIM)
-            return
-        if text.startswith("RESULT: REJECTED"):
-            font, colour = self.bold, RED
-        elif text.startswith("RESULT: PASS"):
-            font, colour = self.bold, GREEN
-        x, rest = PAD, text
-        while rest:
-            hits = [(rest.find(t), t) for t in (WRONG, RIGHT) if emphasis and t in rest]
-            if not hits:
-                draw.text((x, y), rest, font=font, fill=colour)
-                return
-            at, token = min(hits)
-            draw.text((x, y), rest[:at], font=font, fill=colour)
-            x += at * self.char
-            draw.text((x, y), token, font=self.bold, fill=ACCENT if token == WRONG else OTHER)
-            x += len(token) * self.char
-            rest = rest[at + len(token) :]
-
-    def render(
-        self, lines: list[str], rows: int, caption: str, emphasis: bool, done: bool = False
-    ) -> Image.Image:
-        height = PAD * 2 + rows * LINE + STRIP
-        image = Image.new("RGB", (WIDTH, height), BG)
-        draw = ImageDraw.Draw(image)
-        for n, text in enumerate(lines):
-            self.draw_line(draw, PAD + n * LINE, text, emphasis)
-        top = height - STRIP
-        draw.rectangle([0, top, WIDTH, height], fill=STRIP_BG)
-        draw.text((PAD, top + 13), caption, font=self.bold, fill=GREEN if done else ACCENT)
-        tag = "Authored example · excerpt"
-        small = self.regular.font_variant(size=16)
-        draw.text((WIDTH - PAD - small.getlength(tag), top + 16), tag, font=small, fill=DIM)
-        return image
+def paint(text: str) -> str:
+    """Escape one line of output and colour it. The characters are unchanged."""
+    safe = html.escape(text, quote=False)
+    if text.startswith("RESULT: REJECTED"):
+        return f'<b class="bad">{safe}</b>'
+    if text.startswith("RESULT: PASS"):
+        return f'<b class="good">{safe}</b>'
+    if text.startswith("$ "):
+        return f'<b class="prompt">$</b> <b>{safe[2:]}</b>'
+    return safe.replace(WRONG, f'<b class="b">{WRONG}</b>').replace(
+        RIGHT, f'<b class="a">{RIGHT}</b>'
+    )
 
 
-def build_terminal(screen: Screen, out: dict[str, str]) -> None:
-    command = f"$ planlens-agent check {FAIL}"
-    finding = pick(out["check"], "  [violation]", "    steps[5]", "    required:", "    next:")
+def plan_rows(plan: str, shape: dict[str, int]) -> str:
+    """The plan's own steps, set out so that each step's artifact reference can be compared."""
+    rows = []
+    for step in json.loads(plan)["steps"]:
+        reference = step.get("inputs", {}).get("artifact")
+        line = paint(reference) if reference else '<span class="dim">no artifact input</span>'
+        name = f'<b>{step["id"]}</b> <span class="dim">{step["action"]}</span>'
+        if shape is NARROW:
+            rows.append(f'<div class="step">{name}<br>{line}</div>')
+        else:
+            rows.append(
+                f'<tr><td>{step["id"]}</td><td class="dim">{step["action"]}</td>'
+                f"<td>{line}</td></tr>"
+            )
+    return "".join(rows) if shape is NARROW else f"<table>{''.join(rows)}</table>"
+
+
+def terminal(shape: dict[str, int], *lines: str) -> str:
+    wrapped = [part for line in lines for part in wrap(line, shape["cols"])]
+    return "<pre>" + "\n".join(paint(line) for line in wrapped) + "</pre>"
+
+
+def inspector_crop(report: Path, browser: object, tmp: Path, shape: dict[str, int]) -> Path:
+    """A plain crop of the report's real finding panel, down to its Required row."""
+    css_width, last = (760, "Required") if shape is DESKTOP else (360, "Required")
+    target = shape["width"] - 2 * shape["pad"]
+    context = browser.new_context(  # type: ignore[attr-defined]
+        viewport={"width": css_width, "height": 900},
+        device_scale_factor=target / css_width,
+        color_scheme="dark",
+    )
+    page = context.new_page()
+    page.goto(report.as_uri())
+    page.wait_for_timeout(300)
+    clip = page.evaluate(
+        """(last) => {
+          const panel = document.querySelector('.findings-col').getBoundingClientRect();
+          const label = [...document.querySelectorAll('.finding dt')]
+            .find(d => d.textContent.trim() === last);
+          const next = label.nextElementSibling.nextElementSibling;
+          const top = panel.top + window.scrollY;
+          return {x: panel.left, y: top, width: panel.width,
+                  height: next.getBoundingClientRect().top + window.scrollY - 2 - top};
+        }""",
+        last,
+    )
+    path = tmp / f"crop-{shape['width']}.png"
+    page.screenshot(path=str(path), full_page=True, clip=clip)
+    context.close()
+    return path
+
+
+def scenes(
+    out: dict[str, str], crop: Path, shape: dict[str, int]
+) -> list[tuple[str, str, int, str]]:
+    """Each scene's editorial note, body, milliseconds and accent."""
+    finding = pick(out["check"], "  [violation]", "    steps[5]", "    required:")
     (rejected,) = pick(out["check"], "RESULT:")
     (passed,) = pick(out["recheck"], "RESULT:")
-    first = [command, OMITTED, *screen.lines(rejected), OMITTED, *screen.lines(*finding), OMITTED]
+    assert "plan/artifact-identity" in finding[0]
     diff = [line for line in out["diff"].splitlines() if line.startswith(("<", ">"))]
-    second = [
-        *screen.lines(f"$ {SED}"),
-        f"$ diff {FAIL} my-plan.json",
-        OMITTED,
-        *screen.lines(*diff),
-        "",
-        "$ planlens-agent check my-plan.json",
-        OMITTED,
-        *screen.lines(passed),
-        OMITTED,
-    ]
-    upto = second.index("$ planlens-agent check my-plan.json")
-    rows = max(len(first), len(second))
-    frames = [
-        (screen.render(first, rows, "Rejected, with every required action present", False), 3400),
+    assert len(diff) == 2 and WRONG in diff[0] and RIGHT in diff[1]
+    source = '<div class="dim file">{} · steps, reformatted</div>'
+    return [
         (
-            screen.render(first, rows, "Deploy uses a different build from tests and scan", True),
-            5400,
+            "Every required step is here. Tests and the scan use one build. Deploy uses another.",
+            source.format(FAIL) + plan_rows(out["plan"], shape),
+            3700,
+            ACCENT,
         ),
-        (screen.render(second[:upto], rows, "Correct a copy of the plan", True), 3600),
-        (screen.render(second, rows, "Recheck: PASS. Nothing was deployed", True, True), 4600),
+        (
+            "PlanLens rejects the plan and names the requirement it violates.",
+            terminal(shape, f"$ planlens-agent check {FAIL}", OMITTED, rejected, OMITTED, *finding),
+            3700,
+            RED,
+        ),
+        (
+            "The Inspector shows the references that disagree. Choosing the right one is yours.",
+            f'<img class="crop" src="{crop.as_uri()}">',
+            3900,
+            ACCENT,
+        ),
+        (
+            "A person edits a copy of the plan. PlanLens does not change plans.",
+            terminal(shape, f"$ diff {FAIL} my-plan.json", OMITTED, *diff),
+            3100,
+            ACCENT,
+        ),
+        (
+            "The recheck passes: the declared references agree. "
+            "Nothing was built, tested or deployed.",
+            terminal(shape, "$ planlens-agent check my-plan.json", OMITTED, passed)
+            + plan_rows(out["fixed"], shape),
+            3400,
+            GREEN,
+        ),
     ]
-    total = sum(ms for _, ms in frames) / 1000
-    assert 15 <= total <= 20, total
-    sheet = Image.new("RGB", (WIDTH, frames[0][0].height * len(frames)), BG)
-    for n, (frame, _) in enumerate(frames):
-        sheet.paste(frame, (0, n * frame.height))
-    palette = sheet.quantize(colors=64, dither=Image.Dither.NONE)
-    images = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f, _ in frames]
-    images[0].save(
-        MEDIA / "demo.gif", save_all=True, append_images=images[1:],
-        duration=[ms for _, ms in frames], loop=0, optimize=False, disposal=1,
-    )  # fmt: skip
-    upper = screen.render(first, len(first), "Rejected: deploy uses a different build", True)
-    lower = screen.render(
-        second, len(second), "Corrected copy: PASS. Nothing was deployed", True, True
+
+
+def scene_page(
+    fonts: dict[str, Path],
+    shape: dict[str, int],
+    note: str,
+    body: str,
+    accent: str,
+    n: int,
+    of: int,
+) -> str:
+    dots = "".join(f'<i class="{"on" if k == n else ""}"></i>' for k in range(of))
+    faces = "".join(
+        f"@font-face{{font-family:{name};src:url({path.as_uri()})}}"
+        for name, path in (
+            ("Sans", fonts["plex"]),
+            ("Mono", fonts["mono"]),
+            ("MonoB", fonts["bold"]),
+        )
     )
-    joined = Image.new("RGB", (WIDTH, upper.height + lower.height), BG)
-    joined.paste(upper, (0, 0))
-    joined.paste(lower, (0, upper.height))
-    joined.quantize(colors=64, dither=Image.Dither.NONE).save(MEDIA / "demo.png", optimize=True)
-    print(f"demo.gif: {len(frames)} frames, {total:.1f}s, {WIDTH}x{frames[0][0].height}")
+    pad = shape["pad"]
+    tag = "Authored example" if shape is NARROW else "Authored example · declared references only"
+    style = f"""{faces}
+*{{box-sizing:border-box;margin:0}}
+html,body{{width:{shape["width"]}px;height:{shape["height"]}px;background:{BG};overflow:hidden}}
+body{{display:grid;grid-template-rows:auto 1fr auto;color:{FG};font:{shape["mono"]}px/1.42 Mono}}
+header{{background:{STRIP_BG};border-left:8px solid {accent};padding:{pad * 0.62}px {pad}px}}
+header span{{font:{shape["tag"]}px Mono;color:{DIM};display:block;margin-bottom:6px}}
+header p{{font:{shape["note"]}px/1.28 Sans;color:{FG}}}
+main{{padding:{pad * 0.75}px {pad}px 0;min-height:0}}
+pre{{font:inherit;white-space:pre-wrap;margin-bottom:{pad * 0.6}px}}
+b{{font-family:MonoB;font-weight:400}}
+.dim{{color:{DIM}}}.prompt{{color:{PROMPT}}}.bad{{color:{RED}}}.good{{color:{GREEN}}}
+.a{{color:{OTHER}}}.b{{color:{ACCENT}}}
+.file{{margin-bottom:{pad * 0.35}px;font-size:{shape["tag"]}px}}
+table{{border-collapse:collapse;width:100%}}
+td{{padding:{shape["mono"] * 0.3}px {pad * 0.7}px {shape["mono"] * 0.3}px 0;
+  border-bottom:1px solid #21262D;white-space:nowrap}}
+.step{{padding:{shape["mono"] * 0.26}px 0;border-bottom:1px solid #21262D}}
+.crop{{display:block;width:100%;border-radius:6px}}
+footer{{display:flex;justify-content:space-between;align-items:center;
+  padding:{pad * 0.42}px {pad}px;
+  background:{STRIP_BG};color:{DIM};font-size:{shape["tag"]}px}}
+footer div{{display:flex;gap:8px}}
+i{{display:block;width:{shape["tag"] * 1.5}px;height:6px;background:#30363D;border-radius:3px}}
+i.on{{background:{ACCENT}}}
+"""
+    return (
+        f"<!doctype html><meta charset=utf-8><style>{style}</style>"
+        f"<header><span>Editorial note</span><p>{html.escape(note)}</p></header>"
+        f"<main>{body}</main>"
+        f"<footer><div>{dots}</div><span>{tag}</span></footer>"
+    )
+
+
+def build_walkthrough(
+    fonts: dict[str, Path], out: dict[str, str], report: Path, browser: object, tmp: Path
+) -> None:
+    for shape, stem in ((DESKTOP, "demo"), (NARROW, "demo-narrow")):
+        crop = inspector_crop(report, browser, tmp, shape)
+        planned = scenes(out, crop, shape)
+        total = sum(ms for _, _, ms, _ in planned) / 1000
+        assert 12 <= total <= 18, total
+        context = browser.new_context(  # type: ignore[attr-defined]
+            viewport={"width": shape["width"], "height": shape["height"]}
+        )
+        page = context.new_page()
+        frames = []
+        for n, (note, body, ms, accent) in enumerate(planned):
+            path = tmp / f"{stem}-{n}.html"
+            path.write_text(scene_page(fonts, shape, note, body, accent, n, len(planned)))
+            page.goto(path.as_uri())
+            page.wait_for_timeout(300)
+            overflow = page.evaluate(
+                "() => { const m = document.querySelector('main');"
+                " return m.scrollHeight - m.clientHeight; }"
+            )
+            assert overflow <= 0, (stem, n, overflow)
+            frames.append((Image.open(io.BytesIO(page.screenshot())).convert("RGB"), ms))
+        context.close()
+        width, height = frames[0][0].size
+        sheet = Image.new("RGB", (width, height * len(frames)), BG)
+        for n, (frame, _) in enumerate(frames):
+            sheet.paste(frame, (0, n * height))
+        palette = sheet.quantize(colors=96, dither=Image.Dither.NONE)
+        images = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f, _ in frames]
+        images[0].save(
+            MEDIA / f"{stem}.gif", save_all=True, append_images=images[1:],
+            duration=[ms for _, ms in frames], loop=0, optimize=False, disposal=1,
+        )  # fmt: skip
+        sheet.quantize(colors=96, dither=Image.Dither.NONE).save(
+            MEDIA / f"{stem}.png", optimize=True
+        )
+        print(f"{stem}.gif: {len(frames)} scenes, {total:.1f}s, {width}x{height}")
 
 
 def text_path(font: TTFont, text: str, size: float, x: float, baseline: float) -> tuple[str, float]:
@@ -322,7 +430,7 @@ td{{padding-right:56px}}
 """
     (tmp / "social.html").write_text(
         f"<!doctype html><meta charset=utf-8><style>{style}</style>"
-        f"<div><div class=w>{wordmark}</div><h1>Lint AI-agent plans before they run.</h1></div>"
+        f"<div><div class=w>{wordmark}</div><h1>Catch plan errors before execution.</h1></div>"
         f"<div><table>{rows}</table><div class=r>REJECTED <span>{finding['rule_id']}</span></div>"
         "</div><div class=t>Authored example</div>"
     )
@@ -401,10 +509,10 @@ def main() -> None:
         tmp = Path(directory).resolve()
         fonts = fetch_fonts(tmp)
         report, out = capture(tmp)
-        build_terminal(Screen(fonts), out)
         build_brand(fonts)
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=args.chrome)
+            build_walkthrough(fonts, out, report, browser, tmp)
             build_inspector(report, browser)
             build_finding_crops(report, browser)
             build_social(fonts, out, browser, tmp)

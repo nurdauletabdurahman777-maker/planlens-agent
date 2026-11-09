@@ -9,6 +9,8 @@ Changed
 - Installation is documented as `python -m pip install "planlens-agent==0.1.0"`.
 - The package description comes from `README.pypi.md`, because the GitHub README uses relative
   images and links that would break on PyPI.
+- The README opens with a walkthrough of one authored example, built from real package output and
+  a real Inspector capture, and the summary now reads "Catch plan errors before execution".
 - The selected names are recorded in `docs/naming.md`, with PyPI registration pending.
 
 Compatibility
