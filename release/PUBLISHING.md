@@ -1,8 +1,16 @@
 # Publishing PlanLens 0.1.0
 
 How the first public release goes from a reviewed local candidate to PyPI and GitHub. Local preparation
-is complete when the review bundle exists. **Everything in "Launch" needs explicit owner approval,
-given for that launch.** Approval for one step does not extend to the next.
+is complete when the review bundle exists.
+
+**The hold is absolute until the owner gives explicit authorization.** Nothing in "Before the launch" or
+"Launch" happens without it. One explicit owner authorization may cover a concrete, reviewed launch
+sequence, so long as it names the commit and the steps it covers; the mechanical steps inside it do not
+each need separate conversational approval. An authorization does not extend to a different commit or to
+steps it does not name.
+
+No authorization overrides the stop conditions below, the CI gate in `publish.yml` or the review required
+by the `pypi` GitHub environment. If one of those stops the sequence, the authorization ends there.
 
 | Item | Value |
 | --- | --- |
@@ -31,8 +39,8 @@ That does not show the package can be installed from PyPI. Step 8 does.
 
 ## Before the launch
 
-These change external accounts, so each needs explicit owner approval. Do them after step 1 and before
-step 7.
+These change external accounts, so the owner's authorization must cover them. Do them after step 1 and
+before step 7.
 
 - **PyPI.** Re-check that `planlens-agent` is still available: an earlier 404 reserves nothing. Add a
   pending Trusted Publisher with owner `nurdauletabdurahman777-maker`, repository `planlens-agent`,
@@ -60,7 +68,7 @@ what to do about each one is an owner decision.
 
 ### 2. Make the repository public
 
-Only after explicit launch approval:
+Only under the owner's authorization:
 
 ```text
 gh repo edit REPO --visibility public --accept-visibility-change-consequences
@@ -88,6 +96,8 @@ git push origin main
 
 Stop if the fast-forward is refused, because `main` then holds work that was not reviewed.
 
+Pushing `main` starts a separate `CI` run for the same commit. That run is the one publishing depends on.
+
 ### 5. Verify the exact main commit
 
 ```text
@@ -96,7 +106,8 @@ git rev-parse origin/main
 gh run list -R REPO --commit COMMIT --workflow ci.yml --json status,conclusion,headSha
 ```
 
-`origin/main` must equal `COMMIT`, and `CI` must be `completed` with conclusion `success` for it.
+`origin/main` must equal `COMMIT`, and every `CI` run listed for it must be `completed` with conclusion
+`success`, including the run from the push to `main`.
 
 ### 6. Create the tag
 
@@ -107,15 +118,19 @@ git push origin v0.1.0
 
 ### 7. Publish to PyPI
 
-Start the workflow from the tag. Nothing else starts it:
+Pushing the tag starts another `CI` run for the same commit. Wait for it to finish. Then start the
+workflow from the tag. Nothing else starts it:
 
 ```text
 gh workflow run publish.yml -R REPO --ref v0.1.0 -f version=0.1.0 -f commit=COMMIT
 ```
 
-The `check` job builds the wheel and sdist once, runs `scripts/release_check.py` and `twine check` on them,
-and records their hashes in the job summary. The `publish` job waits for approval of the `pypi`
-environment, downloads exactly those two files, verifies them against `SHA256SUMS` and uploads them.
+The `check` job first runs `scripts/ci_gate.py`, which stops the workflow unless GitHub's Actions API
+shows that `CI` passed for exactly this commit: a successful push to `main`, all 30 declared jobs on the
+latest attempt, and nothing failed or unfinished on any other ref of the commit. It then builds the wheel
+and sdist once, runs `scripts/release_check.py` and `twine check` on them, and records their hashes in the
+job summary. The `publish` job waits for approval of the `pypi` environment, downloads exactly those two
+files, verifies them against `SHA256SUMS`, runs the CI gate again and uploads them.
 **Do not rebuild between checking and uploading**, and do not upload by any other route.
 
 Before approving, compare the job summary with the hashes in the reviewed bundle. If they differ, stop
@@ -179,6 +194,6 @@ Stop, and leave what exists in place, if any of these is true.
 | Tag | The tag is not `v0.1.0`, does not point at `COMMIT`, or already exists on another commit |
 | Commit | `origin/main` is not `COMMIT`, or the commit differs from the reviewed candidate |
 | Artifacts | Any file differs from `SHA256SUMS`, there are not exactly two distributions, or the hosted and reviewed hashes differ without explanation |
-| CI | Any `CI` job on `COMMIT` is not `success`, or the run is for a different commit |
+| CI | `scripts/ci_gate.py` refuses, for any reason, or any `CI` job on `COMMIT` is not `success`. Do not work around the gate; fix the cause, or re-run CI, and start again |
 | Name | `planlens-agent` is no longer available to this project on PyPI |
 | PyPI | The installed version, example output or served hashes differ from those expected |

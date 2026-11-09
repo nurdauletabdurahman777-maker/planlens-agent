@@ -123,7 +123,9 @@ def test_the_release_notes_link_the_tagged_documents() -> None:
 @pytest.mark.parametrize(
     "phrase",
     [
-        "explicit owner approval",
+        "explicit owner authorization",
+        "may cover a concrete, reviewed launch",
+        "scripts/ci_gate.py",
         "Stop",
         "Trusted Publishing",
         "SHA256SUMS",
@@ -134,6 +136,12 @@ def test_the_release_notes_link_the_tagged_documents() -> None:
 )
 def test_the_publishing_procedure_keeps_its_gates(phrase: str) -> None:
     assert phrase in PUBLISHING
+
+
+def test_an_authorization_never_overrides_the_technical_gates() -> None:
+    assert "The hold is absolute until the owner gives explicit authorization." in PUBLISHING
+    assert "No authorization overrides the stop conditions" in PUBLISHING
+    assert "Approval for one step does not extend" not in PUBLISHING
 
 
 def test_the_launch_steps_are_in_the_agreed_order() -> None:

@@ -25,6 +25,7 @@ Added
 - `scripts/release_check.py` checks a built wheel and sdist as one pair, and `release/` holds the
   release notes and publishing procedure.
 - `.github/workflows/publish.yml`, a manual-only PyPI Trusted Publishing workflow.
+  `scripts/ci_gate.py` stops it unless GitHub's Actions API shows CI passed for the exact commit.
 
 ## 0.1.0.dev0 - unreleased (checkpoint B2)
 
