@@ -8,14 +8,14 @@ For developers building structured plan-and-execute agents.
 | --- | --- | --- |
 | An action catalog and a workflow contract | A sequential plan | A deterministic verdict, specific diagnostics and an optional execution gate |
 
-![Terminal demo. planlens-agent checks a bundled plan and rejects it with plan/artifact-identity because deploy_prod references build_hotfix.artifact while tests and the scan use build_rc.artifact. A copy is corrected to deploy build_rc.artifact, and the recheck passes with exit 0.](docs/media/demo.gif)
-
-*An authored example, rendered from real installed-wheel output. Nothing was deployed. [Static version](docs/media/demo.png).*
-
 Every required action is in this plan, and it is still wrong: the deployment references a different
 build from the one that was tested and scanned.
 
 **Install → Check → Understand → Correct → Recheck → Integrate**
+
+![Terminal demo. planlens-agent checks a bundled plan and rejects it with plan/artifact-identity because deploy_prod references build_hotfix.artifact while tests and the scan use build_rc.artifact. A copy is corrected to deploy build_rc.artifact, and the recheck passes with exit 0.](docs/media/demo.gif)
+
+*An authored example, rendered from real installed-wheel output. Nothing was deployed. [Static version](docs/media/demo.png).*
 
 > **Private pre-release.** The [repository](https://github.com/nurdauletabdurahman777-maker/planlens-agent)
 > is private, so you need read access to it. It is not on PyPI. After installation it runs offline, with
@@ -29,7 +29,8 @@ the wheel downloads its pinned build backend once. This is the only step here th
 
 <!-- run prereq -->
 ```sh
-git clone --branch launch/developer-experience https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
+git clone --branch launch/developer-experience \
+  https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
 python3 -m venv build-env
 build-env/bin/python -m pip wheel --no-deps --wheel-dir wheelhouse ./planlens-agent
 ```
@@ -116,7 +117,7 @@ This is a library: code that never calls it is not constrained by it.
 
 ## Status
 
-| | |
+| Area | Current state |
 | --- | --- |
 | Hosted checks | Run on Ubuntu, macOS and Windows, on CPython 3.11 to 3.14 |
 | Real planner output | One saved-response integration trial, independently reviewed. It is one response to an authored task, not a reliability estimate |

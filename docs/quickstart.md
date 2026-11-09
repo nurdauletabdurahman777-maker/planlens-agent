@@ -24,7 +24,8 @@ Build the wheel. `pip` downloads the pinned build backend.
 
 <!-- run prereq -->
 ```sh
-git clone --branch launch/developer-experience https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
+git clone --branch launch/developer-experience \
+  https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
 python3 -m venv build-env
 build-env/bin/python -m pip wheel --no-deps --wheel-dir wheelhouse ./planlens-agent
 ```

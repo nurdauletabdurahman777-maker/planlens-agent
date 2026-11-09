@@ -154,11 +154,8 @@ def build(screen: Screen, out: dict[str, str]) -> None:
     ) -> None:
         frames.append((screen.render(lines, rows, marked or set(), caption, ok), ms))
 
-    step1 = "1  Check the bundled plan"
-    for end in range(2, len(command) + 1, 6):
-        add([command[:end]], 70, step1)
-    add([command], 350, step1)
-    add(full, 2800, "1  Rejected: all required actions are present, the plan is still wrong")
+    # No typing animation: every frame shows real output, and the first one already says something.
+    add(full, 4200, "1  Rejected: all required actions are present, the plan is still wrong")
     add(
         full,
         5200,
