@@ -94,6 +94,7 @@ class Mock:
         self.page_size = 100
         self.status_for: dict[str, int] = {}
         self.raw_for: dict[str, bytes] = {}
+        self.dropped: set[str] = set()
         self.total_override: dict[str, int] = {}
         self.after_jobs: list[dict[str, Any]] | None = None
         self.requests: list[str] = []
@@ -133,7 +134,9 @@ def api() -> Iterator[tuple[Mock, str]]:
             path, q = split.path, parse_qs(split.query)
             mock.requests.append(self.path)
             mock.tokens.add(self.headers.get("Authorization", ""))
-            if path in mock.status_for:
+            if path in mock.dropped:
+                self.close_connection = True
+            elif path in mock.status_for:
                 code = mock.status_for[path]
                 self.send(code, b"{}", {"Location": "http://127.0.0.1:1/x"} if code == 302 else {})
             elif path in mock.raw_for:
@@ -572,6 +575,14 @@ def test_an_unreadable_answer_blocks(api: Api, raw: bytes) -> None:
     mock.add(make_run())
     mock.raw_for[f"/repos/{REPO}/actions/workflows/{CI_ID}/runs"] = raw
     assert_blocked(gate(base), "")
+
+
+def test_an_unexpected_failure_blocks_instead_of_passing(api: Api) -> None:
+    mock, base = api
+    mock.add(make_run())
+    # urllib does not wrap a connection dropped before the response, so no specific handler sees it.
+    mock.dropped.add(f"/repos/{REPO}/actions/workflows/{CI_ID}/runs")
+    assert_blocked(gate(base), "unverifiable: RemoteDisconnected")
 
 
 def test_an_unreachable_api_blocks() -> None:
