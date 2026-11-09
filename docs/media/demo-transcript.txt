@@ -1,0 +1,58 @@
+Complete output of the authored demo, captured from the installed wheel. Nothing was deployed.
+
+$ planlens-agent check plans/artifact-mismatch.json
+planlens-agent 0.1.0.dev0 - declared-plan check
+  plan      plans/artifact-mismatch.json  sha256:4b2a680effeb
+  contract  release-basic 1.0.0  sha256:7bb60e9c3ee7
+  catalog   release-basic 1.0.0  sha256:e85a33811dfb
+
+RESULT: REJECTED (exit 1) - 1 violation
+
+steps[5]  id=deploy_prod
+  [violation] plan/artifact-identity  (contract rule: deploy-what-was-verified)
+    steps[5] (deploy_prod) input 'artifact' refers to build_hotfix.artifact, but steps[2] (test_rc) input 'artifact' refers to build_rc.artifact
+    observed: [{"input": "artifact", "refers_to": "build_rc.artifact", "step_id": "test_rc", "step_index": 2}, {"input": "artifact", "refers_to": "build_rc.artifact", "step_id": "scan_rc", "step_index": 3}, {"input": "artifact", "refers_to": "build_hotfix.artifact", "step_id": "deploy_prod", "step_index": 5}]
+    required: one planned artifact across unit_tests.artifact, security_scan.artifact, deploy.artifact
+    at:       plan:/steps/5/inputs/artifact
+    see:      plan:/steps/2/inputs/artifact
+    see:      plan:/steps/3/inputs/artifact
+    see:      contract:/rules/3
+    why:      The artifact that is deployed must be the one that was tested and scanned.
+    next:     Make every listed input refer to the same producer output. The checker cannot tell which reference is the wrong one.
+
+Not checked by this tool:
+  - whether any step actually runs, succeeds or does what its action name suggests
+  - whether tests passed, scans were clean or an approval was actually granted
+  - artifact contents or digests (only the planned producer step and output are compared)
+  - requirements that are not written in the owner's contract
+Explain a rule offline: planlens-agent explain plan/artifact-identity
+[exit 1]
+
+$ sed 's/build_hotfix.artifact/build_rc.artifact/' plans/artifact-mismatch.json > my-plan.json
+[exit 0]
+
+$ diff plans/artifact-mismatch.json my-plan.json
+10c10
+<     {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_hotfix.artifact"}}
+---
+>     {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_rc.artifact"}}
+[exit 1]
+
+$ planlens-agent check my-plan.json
+planlens-agent 0.1.0.dev0 - declared-plan check
+  plan      my-plan.json  sha256:dc3594ad2bb6
+  contract  release-basic 1.0.0  sha256:7bb60e9c3ee7
+  catalog   release-basic 1.0.0  sha256:e85a33811dfb
+
+RESULT: PASS (exit 0) - 6 steps satisfy every supported required check
+
+Not checked by this tool:
+  - whether any step actually runs, succeeds or does what its action name suggests
+  - whether tests passed, scans were clean or an approval was actually granted
+  - artifact contents or digests (only the planned producer step and output are compared)
+  - requirements that are not written in the owner's contract
+[exit 0]
+
+$ planlens-agent inspect plans/artifact-mismatch.json --output report.html
+wrote report.html: REJECTED (exit 1), 1 finding
+[exit 1]

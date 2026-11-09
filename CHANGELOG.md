@@ -54,6 +54,12 @@ Developer experience
   command has its own status, so a failure in the middle of a block is fatal, and the README's
   development command is run from a clean shell.
 
+Presentation
+
+- PlanLens wordmark, a README built around the first questions a developer asks, a saved diagnosis
+  in a collapsed section, a docs index, an examples index and contributor guidance.
+- Terminal media is now a labelled excerpt with a complete transcript beside it.
+
 Fixed on hosted CI
 
 - `.gitattributes` keeps LF on every platform and leaves the vendored OASIS schema untouched.

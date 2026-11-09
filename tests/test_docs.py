@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 import re
 import subprocess
@@ -11,11 +12,20 @@ from pathlib import Path
 
 import pytest
 
-from helpers import ROOT
+from planlens_agent import check
 
-DOCS = [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]
+from helpers import ROOT, TEMPLATE, run_cli
+
+DOCS = [
+    ROOT / "README.md",
+    ROOT / "CONTRIBUTING.md",
+    ROOT / "examples" / "README.md",
+    *sorted((ROOT / "docs").glob("*.md")),
+    ROOT / "docs" / "brand" / "README.md",
+]
 LINK = re.compile(r"(?<!\!)\[[^\]]*\]\(([^)\s]+)\)")
 IMAGE = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)\)")
+HTML_TARGET = re.compile(r'(?:src|srcset|href)="([^"]+)"')
 
 spec = importlib.util.spec_from_file_location("docs_check", ROOT / "scripts" / "docs_check.py")
 assert spec is not None and spec.loader is not None
@@ -35,7 +45,9 @@ def slugs(text: str) -> set[str]:
 @pytest.mark.parametrize("doc", DOCS, ids=lambda p: p.name)
 def test_relative_links_and_anchors_exist(doc: Path) -> None:
     text = doc.read_text(encoding="utf-8")
-    for target in LINK.findall(text) + [m[1] for m in IMAGE.findall(text)]:
+    for target in (
+        LINK.findall(text) + [m[1] for m in IMAGE.findall(text)] + HTML_TARGET.findall(text)
+    ):
         if target.startswith(("http://", "https://", "mailto:")):
             continue
         path, _, anchor = target.partition("#")
@@ -52,7 +64,7 @@ def test_copy_and_run_blocks_are_annotated_and_pasteable(doc: Path) -> None:
 
 def test_the_journey_documents_have_runnable_blocks() -> None:
     for doc in (ROOT / "README.md", ROOT / "docs" / "quickstart.md"):
-        assert len(docs_check.parse(doc.read_text(encoding="utf-8"))) >= 5
+        assert len(docs_check.parse(doc.read_text(encoding="utf-8"))) >= 4
 
 
 def test_an_unannotated_block_is_refused() -> None:
@@ -64,30 +76,119 @@ def test_an_inline_comment_is_refused_because_zsh_would_run_it() -> None:
     assert docs_check.problems(docs_check.parse(text))
 
 
+README = (ROOT / "README.md").read_text(encoding="utf-8")
+PLAN = (TEMPLATE / "plans" / "artifact-mismatch.json").read_text(encoding="utf-8")
+TRANSCRIPT = (ROOT / "docs" / "media" / "demo-transcript.txt").read_text(encoding="utf-8")
+CASE = README[README.index("## All required steps") : README.index("## How it works")]
+
+
 def test_images_have_descriptive_alt_text_and_reasonable_size() -> None:
-    images = IMAGE.findall((ROOT / "README.md").read_text(encoding="utf-8"))
-    assert {Path(path).name for _, path in images} == {"demo.gif", "inspector.png"}
-    for alt, _ in images:
-        assert len(alt) > 80, alt
-    for name, limit in (("demo.gif", 1_000_000), ("demo.png", 500_000), ("inspector.png", 500_000)):
+    markdown = IMAGE.findall(README)
+    assert [Path(path).name for _, path in markdown] == ["demo.gif"]
+    assert len(markdown[0][0]) > 80
+    assert len(re.search(r'alt="(PlanLens inspector[^"]+)"', README).group(1)) > 80  # type: ignore[union-attr]
+    limits = {
+        "demo.gif": 300_000,
+        "demo.png": 200_000,
+        "inspector.png": 500_000,
+        "inspector-light.png": 500_000,
+        "social-preview.png": 1_000_000,
+    }
+    for name, limit in limits.items():
         assert (ROOT / "docs" / "media" / name).stat().st_size < limit, name
 
 
-def test_the_opening_screen_says_what_it_is_before_anything_else() -> None:
-    text = (ROOT / "README.md").read_text(encoding="utf-8")
-    opening = text[: text.index("## Install")]
-    assert opening.startswith("# planlens-agent\n\n**Lint AI-agent plans before they run.**")
+def test_the_opening_answers_the_first_questions() -> None:
+    opening = README[: README.index("## Install")]
+    assert "Lint AI-agent plans before they run." in opening
     for phrase in (
         "plan-and-execute agents",
-        "action catalog",
-        "workflow contract",
+        "wrong order",
+        "catalog",
+        "contract",
         "sequential plan",
         "deterministic verdict",
         "execution gate",
+        "#install",
         "authored example",
-        "private",
+        "private pre-release",
     ):
         assert phrase.lower() in opening.lower(), phrase
+
+
+@pytest.mark.parametrize(
+    "word",
+    [
+        "revolutionary",
+        "next-generation",
+        "seamless",
+        "enterprise-grade",
+        "production-ready",
+        "stars",
+    ],
+)
+def test_no_promotional_or_unsupported_claims(word: str) -> None:
+    assert word not in README.lower()
+
+
+def test_the_brand_has_both_themes() -> None:
+    for theme in ("light", "dark"):
+        svg = (ROOT / "docs" / "brand" / f"planlens-wordmark-{theme}.svg").read_text()
+        assert 'aria-label="PlanLens"' in svg and "<text" not in svg
+
+
+def test_the_case_is_collapsed_and_labelled() -> None:
+    assert "<details>" in CASE and "<details open" not in CASE
+    assert "<summary><strong>Reveal the PlanLens diagnosis</strong></summary>" in CASE
+    assert "Fragment of the authored plan" in CASE
+    assert "saved result" in CASE
+
+
+def test_the_case_fragment_is_the_real_plan() -> None:
+    fence = re.search(r"```json\n(.*?)```", CASE, re.S)
+    assert fence is not None
+    lines = fence.group(1).splitlines()
+    assert len(lines) == 6
+    for line in lines:
+        assert line in PLAN.splitlines(), line
+
+
+def test_the_case_diagnosis_is_real_output() -> None:
+    done = run_cli("check", "plans/artifact-mismatch.json", cwd=TEMPLATE)
+    assert done.returncode == 1
+    assert done.stdout.rstrip("\n") in TRANSCRIPT
+    for line in ("RESULT: REJECTED (exit 1) - 1 violation", "    why:      The artifact that is"):
+        assert line in done.stdout and line in CASE
+    assert "plan/artifact-identity" in done.stdout and "deploy-what-was-verified" in done.stdout
+
+
+def test_the_case_references_are_the_real_findings() -> None:
+    result = check(
+        TEMPLATE / "plans/artifact-mismatch.json",
+        TEMPLATE / "contract.toml",
+        TEMPLATE / "catalog.toml",
+    )
+    (finding,) = result.diagnostics
+    assert finding.rule_id == "plan/artifact-identity"
+    for row in finding.observed:
+        assert f"| `{row['step_id']}` | `{row['refers_to']}` |" in CASE
+
+
+def test_the_case_correction_and_recheck_are_real() -> None:
+    (old,) = [line for line in PLAN.splitlines() if "build_hotfix.artifact" in line]
+    assert f"-{old}" in CASE
+    assert "+" + old.replace("build_hotfix.artifact", "build_rc.artifact") in CASE
+    fixed = PLAN.replace("build_hotfix.artifact", "build_rc.artifact")
+    passed = check(json.loads(fixed), TEMPLATE / "contract.toml", TEMPLATE / "catalog.toml")
+    assert passed.verdict == "pass"
+    (line,) = [x for x in CASE.splitlines() if x.startswith("RESULT: PASS")]
+    assert line in TRANSCRIPT and line in passed.render_text()
+
+
+def test_the_transcript_has_no_local_paths() -> None:
+    assert (
+        "/Users/" not in TRANSCRIPT and "/private/" not in TRANSCRIPT and "/tmp/" not in TRANSCRIPT
+    )
 
 
 @pytest.mark.parametrize("doc", DOCS, ids=lambda p: p.name)
@@ -212,14 +313,16 @@ def test_commands_keep_continuations_and_heredocs_whole() -> None:
     assert docs_check.commands(body) == ["one \\\n  two", "cat > f <<'EOF'\nthree\nEOF", "four"]
 
 
-@pytest.mark.parametrize("doc", [ROOT / "README.md", ROOT / "docs" / "quickstart.md"], ids=str)
+@pytest.mark.parametrize(
+    "doc", [ROOT / "README.md", ROOT / "docs" / "quickstart.md", ROOT / "CONTRIBUTING.md"], ids=str
+)
 def test_every_command_fence_in_the_journey_documents_is_verified(doc: Path) -> None:
     fences = re.findall(r"^```(\w*)", doc.read_text(encoding="utf-8"), re.M)
     assert not {"console", "shell", "bash", "zsh"} & set(fences), fences
 
 
 def test_the_development_setup_is_a_verified_block_that_selects_its_environment() -> None:
-    blocks = docs_check.parse((ROOT / "README.md").read_text(encoding="utf-8"))
+    blocks = docs_check.parse((ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8"))
     dev = [b for b in blocks if b.kind == "dev"]
     assert len(dev) == 1
     assert dev[0].body.startswith("uv run ")

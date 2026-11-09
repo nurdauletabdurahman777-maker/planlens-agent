@@ -147,7 +147,7 @@ def docs(python: str, tmp: Path, log: Path | None) -> None:
             "--wheel", wheel, "--checkout", ROOT,
         ]  # fmt: skip
 
-    args = check(ROOT / "README.md", quickstart, work="docs")
+    args = check(ROOT / "README.md", quickstart, ROOT / "CONTRIBUTING.md", work="docs")
     if log:
         args += ["--log", log]
     sh(*args, cwd=tmp)
