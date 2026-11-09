@@ -2,7 +2,7 @@
 
 What has been observed, what has not, and how far each result goes.
 
-| | Status |
+| Area | Status |
 | --- | --- |
 | Hosted CI | Run on GitHub-hosted Ubuntu, macOS and Windows runners, CPython 3.11 to 3.14. See [CI](ci.md) |
 | Real planner output | One saved-response integration trial, independently reviewed. See below |
@@ -17,7 +17,7 @@ What has been observed, what has not, and how far each result goes.
 One integration trial using an authored release task. A person wrote the task, and a model answered it
 once. This is one response under one configuration. **It is not an estimate of model reliability.**
 
-| | |
+| Item | Observed |
 | --- | --- |
 | Mode | Saved raw response through the existing LangGraph gate with dry handlers |
 | Policy and request | Frozen before any output existed; `release-basic`, unchanged |
