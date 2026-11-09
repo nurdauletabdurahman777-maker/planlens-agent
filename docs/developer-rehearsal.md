@@ -54,6 +54,7 @@ The handlers in the LangGraph demo only record that they were called. No product
 | Re-running in a used folder stops at `init` with a clear message | Expected | Added to troubleshooting |
 | The GIF lost its green on the final frame, had an empty first frame, and the example sat below it | Media and layout | Fixed after viewing the frames and the rendered README |
 | The runner recorded only a block's last status, so a missing script in the middle of a block went unseen (found by independent review) | Runner defect | Each command now has its own status; `docs` CI confirms a missing script fails the real quickstart |
+| Command substitution inside double quotes could hide a failure (found by independent review) | Runner defect | Refused, and escaped or single-quoted text stays literal |
 | The README's development commands ran outside the environment they created (found by independent review) | Documentation defect | Replaced with `uv run`, and made a verified block run from a clean shell |
 
 **No engine defect was found.** No change was made under `src/`.
