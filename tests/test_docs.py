@@ -437,4 +437,9 @@ def test_every_root_document_the_readme_links_is_in_the_sdist() -> None:
     include = PROJECT["tool"]["hatch"]["build"]["targets"]["sdist"]["include"]
     targets = LINK.findall(README)
     for target in [t for t in targets if not t.startswith(("http", "#", "docs/", "examples/"))]:
-        assert target in include, target
+        assert f"/{target}" in include, target
+
+
+def test_sdist_patterns_are_anchored_so_local_files_cannot_match_by_name() -> None:
+    include = PROJECT["tool"]["hatch"]["build"]["targets"]["sdist"]["include"]
+    assert all(pattern.startswith("/") for pattern in include), include
