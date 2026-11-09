@@ -38,9 +38,24 @@ planlens-agent = "planlens_agent.cli:main"
 packages = ["src/planlens_agent"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "docs", "scripts", "examples", ".github", "README.md", "LICENSE", "NOTICE",
-           "AUTHORS.md", "CONTRIBUTING.md", "PROVENANCE.md", "CHANGELOG.md", "pyproject.toml",
-           "uv.lock"]
+# Anchored to the project root: without the slash these match at any depth.
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+    "/scripts",
+    "/examples",
+    "/.github",
+    "/README.md",
+    "/LICENSE",
+    "/NOTICE",
+    "/AUTHORS.md",
+    "/CONTRIBUTING.md",
+    "/PROVENANCE.md",
+    "/CHANGELOG.md",
+    "/pyproject.toml",
+    "/uv.lock",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
