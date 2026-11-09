@@ -223,3 +223,64 @@ def test_the_development_setup_is_a_verified_block_that_selects_its_environment(
     dev = [b for b in blocks if b.kind == "dev"]
     assert len(dev) == 1
     assert dev[0].body.startswith("uv run ")
+
+
+# --- substitution stays active inside double quotes ------------------------------------
+ACTIVE_IN_DOUBLE_QUOTES = [
+    'echo "$(python3 definitely-missing-sdk.py)"',
+    'echo "`python3 definitely-missing-sdk.py`"',
+    'echo "before $(false) after"',
+    'echo "before `false` after"',
+    'echo "\\\\$(false)"',  # an escaped backslash, so the substitution is active
+    'echo "\\\\`false`"',
+    'echo "\\"$(false)"',  # an escaped quote does not close the string
+    "echo \\\\$(false)",  # outside quotes too: an escaped backslash leaves it active
+]
+LITERAL_TEXT = [
+    "echo '$(false)'",
+    "echo '`false`'",
+    "echo 'say \"$(false)\"'",
+    'echo "\\$(false)"',
+    'echo "\\`false\\`"',
+    "echo \\$\\(false\\)",
+    "echo \\;",
+    "echo a\\|b",
+    "echo \\`false\\`",
+    'echo "cost: $HOME ${HOME} (x)"',
+    'echo "it\'s"',
+]
+
+
+@pytest.mark.parametrize("line", ACTIVE_IN_DOUBLE_QUOTES)
+def test_active_substitution_in_double_quotes_is_refused(line: str) -> None:
+    found = docs_check.problems(docs_check.parse(f"<!-- run -->\n```sh\n{line}\n```\n"))
+    assert any("can hide a failure" in item for item in found), found
+
+
+@pytest.mark.parametrize("line", LITERAL_TEXT)
+def test_literal_text_is_accepted(line: str) -> None:
+    assert docs_check.problems(docs_check.parse(f"<!-- run -->\n```sh\n{line}\n```\n")) == []
+
+
+def test_substitution_text_in_a_quoted_heredoc_body_is_literal() -> None:
+    text = "<!-- run -->\n```sh\ncat > f <<'EOF'\n\"$(false)\" `false`\nEOF\n```\n"
+    assert docs_check.problems(docs_check.parse(text)) == []
+
+
+@pytest.mark.parametrize(
+    "line",
+    ['echo "$(python3 definitely-missing-sdk.py)"', 'echo "`python3 definitely-missing-sdk.py`"'],
+    ids=["dollar-paren", "backtick"],
+)
+def test_the_runner_refuses_the_block_before_anything_runs(tmp_path: Path, line: str) -> None:
+    done = run(tmp_path, sh(f"touch ran\n{line}"))
+    assert done.returncode == 1, done.stdout
+    assert "can hide a failure" in done.stdout
+    assert not list(tmp_path.rglob("ran"))
+
+
+@windows
+def test_literal_text_really_is_literal_when_run(tmp_path: Path) -> None:
+    body = 'echo \'$(false)\'\necho "\\`false\\`"\necho "\\$(hostname)"'
+    done = run(tmp_path, sh(body, 'contains="$(false)" contains="`false`" contains="$(hostname)"'))
+    assert done.returncode == 0, done.stdout

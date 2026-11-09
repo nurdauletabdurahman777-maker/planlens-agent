@@ -11,7 +11,7 @@ Every ```sh block is copy-and-run and must be annotated on the line before it:
 Each command in a block has its own status, and the block stops at the first failure. Every
 command except the last must exit 0; the last must exit with `exit=` (default 0). A command that
 is meant to fail therefore goes last in its block. Constructs that could hide a failure inside one
-line (`;`, pipes, `||`, `&`, command substitution) are refused.
+line (`;`, pipes, `||`, `&`, command substitution, including inside double quotes) are refused.
 
 `prereq` marks steps that need network access and repository credentials. With --wheel they
 are skipped, and the wheel and a copy of the checkout are put in place. `online` marks later steps
@@ -103,18 +103,32 @@ def _code(command: str) -> str:
 
 
 def _hiding_construct(code: str) -> str | None:
-    """A construct, outside quotes, that lets one command's failure go unseen."""
+    """A construct that lets one command's failure go unseen.
+
+    Single quotes make everything literal. Double quotes do not: command substitution stays
+    active inside them unless its opening character is escaped.
+    """
     quote, i = "", 0
     while i < len(code):
         c = code[i]
-        if quote:
-            quote = "" if c == quote else quote
+        substitution = "$(" if code.startswith("$(", i) else "`" if c == "`" else None
+        if quote == "'":
+            quote = "" if c == "'" else quote
+        elif quote == '"':
+            if c == "\\":
+                i += 1
+            elif c == '"':
+                quote = ""
+            elif substitution:
+                return substitution
         elif c in "'\"":
             quote = c
         elif c == "\\":
             i += 1
-        elif c in ";|`" or code.startswith("$(", i):
-            return "$(" if c == "$" else c
+        elif substitution:
+            return substitution
+        elif c in ";|":
+            return c
         elif c == "&":
             if code.startswith("&&", i):
                 i += 1
