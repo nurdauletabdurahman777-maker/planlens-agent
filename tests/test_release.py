@@ -157,6 +157,7 @@ def test_provenance_separates_the_original_snapshot_from_the_current_state() -> 
     assert "has gained a commit history and a GitHub remote" in text
 
 
+@pytest.mark.skipif(not (ROOT / "pilot").exists(), reason="pilot/ is not in the sdist")
 def test_pilot_documentation_is_marked_historical_and_points_to_current_files() -> None:
     text = (ROOT / "pilot" / "README.md").read_text(encoding="utf-8")
     assert "**Historical.**" in text and "still pending" not in text
