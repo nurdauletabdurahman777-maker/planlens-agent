@@ -95,8 +95,11 @@ This is a saved result from the installed package, not a live check. Run the com
 | `scan_rc` | `build_rc.artifact` |
 | `deploy_prod` | `build_hotfix.artifact` |
 
+Excerpt of the saved output:
+
 ```text
 RESULT: REJECTED (exit 1) - 1 violation
+...
     why:      The artifact that is deployed must be the one that was tested and scanned.
 ```
 

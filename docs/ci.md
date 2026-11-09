@@ -36,7 +36,7 @@ with its exit status. `ruff format` also covers Python blocks in Markdown.
 | consumer demo | Ubuntu 26.04 | 3.14 | passing gate passes; rejecting gate fails as intended |
 | SARIF upload | Ubuntu 26.04 | 3.14 | **refused**: code scanning is not enabled for this private repository |
 
-The table above was recorded at the first hosted verification. Later branches added two jobs: `pilot`, the capture tests on Ubuntu, macOS and Windows; and `docs`, which runs every copy-and-run block in `README.md` and `docs/quickstart.md` from a built wheel on Ubuntu and macOS, including the README's development command from a clean shell, and confirms that a missing script fails the check.
+The table above was recorded at the first hosted verification. Later branches added two jobs: `pilot`, the capture tests on Ubuntu, macOS and Windows; and `docs`, which runs every copy-and-run block in `README.md` and `docs/quickstart.md` from a built wheel on Ubuntu and macOS, including the contributor guide's development commands from a clean shell, and confirms that a missing script fails the check.
 
 The 6 Ubuntu skips are the case-variant tests, which need a case-insensitive filesystem.
 The recipe was run on hosted Ubuntu only, and macOS arm64 locally; it has not run on Windows.
