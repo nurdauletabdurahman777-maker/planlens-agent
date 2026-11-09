@@ -22,6 +22,8 @@ ROOT = Path(__file__).resolve().parents[1]
 RUFF = "ruff@0.17.4"
 MYPY = "mypy@2.4.1"
 ACTIONLINT = "actionlint-py==1.7.12.25"
+TWINE = "twine==7.0.0"
+README_RENDERER = "readme-renderer[md]==46.0"
 RECIPE = ROOT / "examples" / "langgraph_gate"
 PILOT_TRIAL = ROOT / "pilot" / "planner-trial"
 BIN = "Scripts" if os.name == "nt" else "bin"
@@ -65,7 +67,29 @@ def wheel_env(python: str, tmp: Path, wheel: Path, name: str) -> Path:
 
 
 def package(python: str, tmp: Path, log: Path | None) -> None:
-    wheel = build_wheel(tmp)
+    out = tmp / "dist"
+    sh("uv", "build", "--out-dir", out)
+    (wheel,), (sdist,) = out.glob("*.whl"), out.glob("*.tar.gz")
+    found = subprocess.run(
+        ["uv", "python", "find", "--no-project", python],
+        capture_output=True, text=True, check=True,
+    )  # fmt: skip
+    sh(
+        sys.executable, ROOT / "scripts" / "release_check.py", "--wheel", wheel, "--sdist", sdist,
+        "--sums", tmp / "SHA256SUMS", "--python", found.stdout.strip(), cwd=tmp,
+    )  # fmt: skip
+    sh(
+        "uvx",
+        "--from",
+        TWINE,
+        "--with",
+        README_RENDERER,
+        "twine",
+        "check",
+        "--strict",
+        wheel,
+        sdist,
+    )
     with zipfile.ZipFile(wheel) as z:
         names = z.namelist()
         metadata = next(z.read(n).decode() for n in names if n.endswith(".dist-info/METADATA"))
@@ -147,7 +171,23 @@ def docs(python: str, tmp: Path, log: Path | None) -> None:
             "--wheel", wheel, "--checkout", ROOT,
         ]  # fmt: skip
 
-    args = check(ROOT / "README.md", quickstart, ROOT / "CONTRIBUTING.md", work="docs")
+    # The release notes must stay verbatim, so a copy carries the annotations the runner needs.
+    (notes,) = (ROOT / "release").glob("NOTES_*.md")
+    note_text = notes.read_text(encoding="utf-8")
+    if note_text.count("```sh\n") != 1:
+        sys.exit("the release notes no longer have exactly one command block")
+    runnable = tmp / "release-notes.md"
+    runnable.write_text(
+        "<!-- run -->\n```sh\npython3 -m venv planlens-env\n. planlens-env/bin/activate\n```\n\n"
+        + note_text.replace(
+            "```sh\n",
+            '<!-- run exit=1 contains="REJECTED" contains="plan/artifact-identity" -->\n```sh\n',
+        ),
+        encoding="utf-8",
+    )
+    readme = ROOT / "README.md"
+    pypi = ROOT / "README.pypi.md"
+    args = check(readme, pypi, quickstart, ROOT / "CONTRIBUTING.md", runnable, work="docs")
     if log:
         args += ["--log", log]
     sh(*args, cwd=tmp)

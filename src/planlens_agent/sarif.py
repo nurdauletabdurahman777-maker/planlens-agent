@@ -29,8 +29,10 @@ Locations:
   positions are never turned into line numbers;
 * documents passed to the SDK as mappings have no physical location.
 
-The engine version is a PEP 440 string (``0.1.0.dev0``), which is not SemVer, so
-it goes in ``tool.driver.version`` and ``semanticVersion`` is omitted.
+Engine versions follow PEP 440, which is not SemVer: a development build such as
+``0.1.0.dev0`` is not valid SemVer at all. The version therefore goes in
+``tool.driver.version`` and ``semanticVersion`` is omitted, even for a release
+whose version string would also parse as SemVer.
 """
 
 from __future__ import annotations

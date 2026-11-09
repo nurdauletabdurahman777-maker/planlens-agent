@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.1.0 - first public release
+
+Changed
+
+- Version 0.1.0, with the package maturity classifier `Development Status :: 3 - Alpha`. The
+  public API may evolve during 0.x.
+- Installation is documented as `python -m pip install "planlens-agent==0.1.0"`.
+- The package description comes from `README.pypi.md`, because the GitHub README uses relative
+  images and links that would break on PyPI.
+- The selected names are recorded in `docs/naming.md`, with PyPI registration pending.
+
+Compatibility
+
+- The evaluator digest covers `_version.py`, so runs saved by a `0.1.0.dev0` build are
+  `not_comparable` (exit 2) with runs from 0.1.0. Regenerate those baselines and review them.
+  Strict comparison and the engine-version check on approvals are unchanged.
+
+No checker rule, diagnostic meaning, schema or policy behaviour changed from the last development
+build, and no runtime dependency was added.
+
+Added
+
+- `scripts/release_check.py` checks a built wheel and sdist as one pair, and `release/` holds the
+  release notes and publishing procedure.
+- `.github/workflows/publish.yml`, a manual-only PyPI Trusted Publishing workflow.
+
 ## 0.1.0.dev0 - unreleased (checkpoint B2)
 
 Added

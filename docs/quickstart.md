@@ -5,12 +5,9 @@ Run the blocks in order, from one empty folder, in one terminal.
 
 ## 1. What you need
 
-**Once, to get the package** (this needs a network):
-
 - Python 3.11 or newer. Check with `python3 --version`: some systems still ship an older `python3`.
-- Git, and read access to the private
-  [repository](https://github.com/nurdauletabdurahman777-maker/planlens-agent). Sign in to GitHub first,
-  for example with `gh auth login`.
+- A network connection, once, to install the package.
+- Git, to fetch the example scripts used in section 7.
 
 **For normal use, nothing else.** After installation the tool works offline, with no account, API key
 or telemetry. The only later network step is the optional LangGraph install in section 7.
@@ -20,24 +17,19 @@ these exact steps have not been followed there.
 
 ## 2. Install
 
-Build the wheel. `pip` downloads the pinned build backend.
-
-<!-- run prereq -->
-```sh
-git clone --branch launch/developer-experience \
-  https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
-python3 -m venv build-env
-build-env/bin/python -m pip wheel --no-deps --wheel-dir wheelhouse ./planlens-agent
-```
-
-Install it. This step needs no network.
-
-<!-- run contains="planlens-agent 0.1.0.dev0" -->
+<!-- run contains="planlens-agent 0.1.0" -->
 ```sh
 python3 -m venv planlens-env
 . planlens-env/bin/activate
-pip install --no-index wheelhouse/planlens_agent-0.1.0.dev0-py3-none-any.whl
+python -m pip install "planlens-agent==0.1.0"
 planlens-agent --version
+```
+
+Fetch the example scripts that section 7 runs:
+
+<!-- run prereq -->
+```sh
+git clone https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
 ```
 
 ## 3. Run the first bundled check
@@ -206,9 +198,9 @@ python ../planlens-agent/examples/langgraph_gate/gate.py plans/artifact-mismatch
 
 | What you see | What it means |
 | --- | --- |
-| `No matching distribution found for hatchling==1.33.0` | `python3` is older than 3.11. Install a newer Python, make `python3` point to it, and start again in an empty folder |
+| `No matching distribution found for planlens-agent==0.1.0` | `python3` is older than 3.11, or the package index could not be reached. Install a newer Python, make `python3` point to it, and start again in an empty folder |
 | `requires a different Python` | The same: this environment's Python is older than 3.11 |
-| The clone fails or asks for credentials | You need read access to the private repository and a signed-in GitHub account |
+| The clone fails | Check the address and your network. Section 7's scripts are the only part of this guide that need the clone |
 | `already exists and is not an empty directory` | `init` will not write over a folder. Start from an empty folder, or name a new one |
 | `handlers registered for actions not in the catalog` | `gate.py`'s demo was run outside `release-basic`. See section 7 |
 

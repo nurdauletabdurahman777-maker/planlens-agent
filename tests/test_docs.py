@@ -13,12 +13,13 @@ from pathlib import Path
 
 import pytest
 
-from planlens_agent import check
+from planlens_agent import __version__, check
 
 from helpers import ROOT, TEMPLATE, run_cli
 
 DOCS = [
     ROOT / "README.md",
+    ROOT / "README.pypi.md",
     ROOT / "CONTRIBUTING.md",
     ROOT / "examples" / "README.md",
     *sorted((ROOT / "docs").glob("*.md")),
@@ -65,7 +66,7 @@ def test_copy_and_run_blocks_are_annotated_and_pasteable(doc: Path) -> None:
 
 def test_the_journey_documents_have_runnable_blocks() -> None:
     for doc in (ROOT / "README.md", ROOT / "docs" / "quickstart.md"):
-        assert len(docs_check.parse(doc.read_text(encoding="utf-8"))) >= 4
+        assert len(docs_check.parse(doc.read_text(encoding="utf-8"))) >= 3
 
 
 def test_an_unannotated_block_is_refused() -> None:
@@ -114,7 +115,7 @@ def test_the_opening_answers_the_first_questions() -> None:
         "deterministic verdict",
         "#install-and-reproduce-it",
         "authored plan",
-        "private pre-release",
+        "first public release",
     ):
         assert phrase.lower() in opening.lower(), phrase
 
@@ -224,7 +225,9 @@ FAIL = 'python3 -c "import sys; sys.exit(3)"'
 OK = 'python3 -c "print(1)"'
 
 
-def run(tmp_path: Path, text: str, name: str = "guide") -> subprocess.CompletedProcess[str]:
+def run(
+    tmp_path: Path, text: str, name: str = "guide", extra: tuple[str, ...] = ()
+) -> subprocess.CompletedProcess[str]:
     doc = tmp_path / f"{name}.md"
     doc.write_text(text)
     work = tmp_path / f"work-{name}"
@@ -236,6 +239,7 @@ def run(tmp_path: Path, text: str, name: str = "guide") -> subprocess.CompletedP
         sys.executable,
         "--work",
         str(work),
+        *extra,
     ]
     return subprocess.run(argv, capture_output=True, text=True, check=False)
 
@@ -414,6 +418,25 @@ def test_literal_text_really_is_literal_when_run(tmp_path: Path) -> None:
 # --- owner-confirmed project details --------------------------------------------------
 PROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 NOTICE = (ROOT / "NOTICE").read_text(encoding="utf-8")
+
+
+@windows
+def test_only_ordinary_blocks_are_confined_to_the_local_wheel(tmp_path: Path) -> None:
+    wheel, checkout = tmp_path / "x.whl", tmp_path / "checkout"
+    wheel.write_bytes(b"")
+    checkout.mkdir()
+    show = "python3 -c \"import os; print(os.environ.get('PIP_NO_INDEX', 'open'))\""
+    text = sh(show, 'contains="1"') + sh(show, 'online contains="open"') + sh(show, 'contains="1"')
+    done = run(tmp_path, text, extra=("--wheel", str(wheel), "--checkout", str(checkout)))
+    assert done.returncode == 0, done.stdout
+    assert "does not exercise PyPI" in done.stdout
+
+
+def test_the_journey_installs_the_public_package_by_exact_version() -> None:
+    for doc in (ROOT / "README.md", ROOT / "README.pypi.md", ROOT / "docs" / "quickstart.md"):
+        text = doc.read_text(encoding="utf-8")
+        assert f'python -m pip install "planlens-agent=={__version__}"' in text, doc.name
+        assert "--branch" not in text and "wheelhouse" not in text, doc.name
 
 
 def test_package_metadata_names_the_confirmed_people_in_order() -> None:

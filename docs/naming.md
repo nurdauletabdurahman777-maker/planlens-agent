@@ -1,9 +1,11 @@
 # Naming
 
-**Status: provisional. Nothing has been registered or reserved.**
+**Status: selected by the owner. PyPI registration is pending: nothing has been registered or reserved.**
 
-| what | provisional name | why |
+| what | selected name | why |
 | --- | --- | --- |
+| product | PlanLens | the name people use for the tool |
+| repository | `planlens-agent` | matches the distribution |
 | distribution | `planlens-agent` | `planlens` on PyPI is an unrelated project |
 | import package | `planlens_agent` | distinct from the research artifact's `planlens_v2` |
 | console command | `planlens-agent` | the research artifact already installs a `planlens` command |
@@ -24,6 +26,11 @@
   A product command named `planlens` would overwrite the research command when
   both are installed in one environment, so this product uses a different one.
 
+## Finding, 2026-11-10
+
+- **PyPI `planlens-agent`** returned 404 in a lookup on November 10. This does not reserve or
+  guarantee the name.
+
 ## Not checked
 
 - Console-command collisions with other packages or system tools.
@@ -32,8 +39,8 @@
 
 ## Before publication
 
-Decide the final names, then re-check availability immediately before
-registering, and update `pyproject.toml`, the import package, the CLI entry
-point, the JSON schema identifiers (`planlens-agent/...`) and this file
-together. Schema identifiers are part of the data format, so renaming them
-after release would need a migration note.
+Re-check availability immediately before the first upload. If the name cannot be used, stop: a
+different name means changing `pyproject.toml`, the import package, the CLI entry point, the JSON
+schema identifiers (`planlens-agent/...`), the documentation and this file together, and reviewing
+that change. Schema identifiers are part of the data format, so renaming them after release would
+need a migration note.

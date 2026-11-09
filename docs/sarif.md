@@ -34,8 +34,9 @@ carries its rule id, rule version, description and offline help. The owner's rul
 is in `result.properties.contract_rule`, with `observed`, `required`, `suggestion`
 and `evidence` beside it.
 
-`tool.driver.version` is the engine version. `semanticVersion` is omitted because
-the version is PEP 440 (`0.1.0.dev0`), which is not SemVer.
+`tool.driver.version` is the engine version. `semanticVersion` is omitted because engine
+versions follow PEP 440, which is not SemVer: a development build such as `0.1.0.dev0` is not valid
+SemVer at all. It stays omitted for a release whose version string would also parse as SemVer.
 
 ## Locations
 

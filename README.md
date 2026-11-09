@@ -14,7 +14,7 @@
   <a href="examples/README.md">Examples</a>
 </p>
 
-<p align="center"><sub>Private pre-release · Python 3.11+ · Apache-2.0 · No runtime dependencies</sub></p>
+<p align="center"><sub>First public release · Python 3.11+ · Apache-2.0 · No runtime dependencies</sub></p>
 
 PlanLens checks a sequential plan proposed by an AI agent against actions and workflow requirements you
 own, and returns a deterministic verdict with specific diagnostics before any step runs. It is for developers
@@ -92,24 +92,15 @@ This checks the plan. Nothing was deployed. [Complete transcript](docs/media/dem
 
 ## Install and reproduce it
 
-You need Python 3.11 or newer (check `python3 --version`), Git, and read access to this private
-[repository](https://github.com/nurdauletabdurahman777-maker/planlens-agent). PlanLens is not on PyPI.
-Building the wheel downloads its pinned build backend once. After that, it runs offline, with no model
-account and no telemetry. If something fails, see [Troubleshooting](docs/quickstart.md#troubleshooting).
+You need Python 3.11 or newer; check with `python3 --version`. Installation downloads the package once. It has
+no runtime dependencies, and after that it runs offline, with no model account and no telemetry. If something
+fails, see [Troubleshooting](docs/quickstart.md#troubleshooting).
 
-<!-- run prereq -->
-```sh
-git clone --branch launch/developer-experience \
-  https://github.com/nurdauletabdurahman777-maker/planlens-agent.git
-python3 -m venv build-env
-build-env/bin/python -m pip wheel --no-deps --wheel-dir wheelhouse ./planlens-agent
-```
-
-<!-- run contains="planlens-agent 0.1.0.dev0" -->
+<!-- run contains="planlens-agent 0.1.0" -->
 ```sh
 python3 -m venv planlens-env
 . planlens-env/bin/activate
-pip install --no-index wheelhouse/planlens_agent-0.1.0.dev0-py3-none-any.whl
+python -m pip install "planlens-agent==0.1.0"
 planlens-agent --version
 ```
 
@@ -136,6 +127,7 @@ planlens-agent inspect plans/artifact-mismatch.json --output report.html
 <sub>Authored example, excerpted from real installed-wheel output. Nothing was deployed. [Static image](docs/media/demo.png) · [Complete transcript](docs/media/demo-transcript.txt)</sub>
 
 The [Quickstart](docs/quickstart.md) continues from here, through correcting a plan and writing your own workflow.
+To work from source, see [CONTRIBUTING](CONTRIBUTING.md).
 
 ## Integrate
 
@@ -165,7 +157,8 @@ silently passed.
 ## Scope and evidence
 
 A pass means the **declared plan** satisfies your supported, required rules. It does not show that any step ran,
-that tests passed, or what was deployed. Code that never calls PlanLens is not constrained by it.
+that tests passed, or what was deployed. Code that never calls PlanLens is not constrained by it. The public API
+may evolve during 0.x.
 
 | Area | Current state |
 | --- | --- |
@@ -175,7 +168,7 @@ that tests passed, or what was deployed. Code that never calls PlanLens is not c
 | Onboarding | An implementer rehearsal only. External developer feedback has not been measured |
 | SARIF | Export validated against the official schema. Hosted ingestion is unverified |
 
-Details: [Evidence and limits](docs/evidence.md). Names are provisional: [Naming](docs/naming.md).
+Details: [Evidence and limits](docs/evidence.md). Selected names and registration status: [Naming](docs/naming.md).
 
 ## Contributing and license
 

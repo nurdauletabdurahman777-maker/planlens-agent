@@ -5,6 +5,7 @@ What has been observed, what has not, and how far each result goes.
 | Area | Status |
 | --- | --- |
 | Hosted CI | Run on GitHub-hosted Ubuntu, macOS and Windows runners, CPython 3.11 to 3.14. See [CI](ci.md) |
+| Installation | Documented commands verified against a locally built wheel, with pip confined to that wheel. Installation from PyPI is verified only after publication: see [PUBLISHING](../release/PUBLISHING.md) |
 | Real planner output | One saved-response integration trial, independently reviewed. See below |
 | Implementer rehearsal | Run. See the [developer rehearsal](developer-rehearsal.md) |
 | External developer onboarding | **Not measured.** No external developer has tried it |

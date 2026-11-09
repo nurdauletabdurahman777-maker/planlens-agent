@@ -12,7 +12,7 @@ code in both places. It needs `uv`.
 ```console
 python scripts/ci_local.py lint                  # ruff format and check, mypy --strict, actionlint
 python scripts/ci_local.py test --python 3.11    # pytest from uv.lock
-python scripts/ci_local.py package --python 3.11 # build, inspect the wheel, test the installed wheel
+python scripts/ci_local.py package --python 3.11 # build, check the release pair, test the installed wheel
 python scripts/ci_local.py journey --python 3.14 # scripts/journey.py against the installed command
 python scripts/ci_local.py recipe --python 3.11  # hashed LangGraph lock, recipe tests, full journey
 python scripts/ci_local.py docs --python 3.14    # every copy-and-run block in the README and quickstart
@@ -46,7 +46,8 @@ The recipe was run on hosted Ubuntu only, and macOS arm64 locally; it has not ru
 Enforced by `tests/test_ci_files.py`:
 
 - `permissions: contents: read` by default; `security-events: write` and `actions: read` on the
-  SARIF job alone (`upload-sarif` reads the workflow run on private repositories);
+  SARIF job alone (`upload-sarif` reads the workflow run on private repositories), and
+  `id-token: write` on the publish job of the manual `publish.yml` alone;
 - actions pinned to full commits; checkouts do not keep credentials;
 - no `pull_request_target`, `continue-on-error`, `|| true`, secrets or provider credentials;
 - diagnostic uploads use `if: always()`, so a failing gate keeps its evidence and stays failed;
@@ -77,7 +78,8 @@ A baseline is an **owner-reviewed input**.
 - Read it from the base branch, so a pull request cannot change the baseline it is judged by.
 - Never write candidate or pull-request output over it automatically.
 - Pin `planlens-agent`. A new evaluator build makes comparisons `not_comparable` (exit 2) by
-  design: regenerate the baseline deliberately, and review that change.
+  design: regenerate the baseline deliberately, and review that change. This includes moving
+  from a development build to a release: see [Comparing runs](suites.md#what-a-run-records).
 
 A consumer job, adapted to your project. Candidates come from your own step, and running a
 real planner in CI needs your own decision about credentials, which should never be exposed to

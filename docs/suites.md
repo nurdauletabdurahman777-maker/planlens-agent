@@ -65,10 +65,14 @@ evaluator digest, and the Python version. Runs contain no timestamp, so repeatin
 identical bytes. `plans_dir` is recorded as given, so an absolute `--plans-dir` puts a local
 path in the file.
 
-- **Evaluator digest.** SHA-256 over the modules that decide verdicts, which tells apart
-  development builds sharing the version string `0.1.0.dev0`. Any edit to those modules
-  changes it, including a harmless one: it shows that the evaluator changed, not that its
-  behaviour did. If the source cannot be read it is `null`, and comparisons refuse it.
+- **Evaluator digest.** SHA-256 over the modules that decide verdicts and `_version.py`, which
+  tells apart builds sharing a version string. Any edit to those files changes it, including a
+  harmless one: it shows that the evaluator changed, not that its behaviour did. If the source
+  cannot be read it is `null`, and comparisons refuse it.
+- **Moving between versions.** Because `_version.py` is covered, a new version changes the
+  digest even when no rule changed. Runs saved by a development build such as `0.1.0.dev0` are
+  `not_comparable` (exit 2) with runs from `0.1.0`. Regenerate the baseline with the new version
+  and review it. Do not edit the digest or engine fields of a saved run to restore a comparison.
 - **Labels** such as `--label model=x` are metadata supplied by the caller. Nothing verifies
   them, and they do not establish which model, prompt or provider produced a plan.
 - **A run is a record, not an approval.** `ReferenceRunner.dispatch` refuses it. Execution

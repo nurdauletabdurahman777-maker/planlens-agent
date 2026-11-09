@@ -144,7 +144,7 @@ def cmd_check(a: argparse.Namespace) -> int:
             return 2
         sys.stdout.write(sarif)
         return result.exit_code
-    # text and json modes: --output always saves the JSON report (unchanged since 0.1.0.dev0).
+    # text and json modes: --output always saves the JSON report.
     if a.output and not _save(a.output, result.to_json(), "report"):
         return 2
     if a.format == "json":
