@@ -374,6 +374,7 @@ header div{{display:flex;justify-content:space-between;align-items:baseline}}
 main{{display:flex;flex-direction:column;justify-content:center;min-height:0;
   padding:{pad * 0.5}px {pad}px {pad * 0.9}px}}
 .focus{{font-size:1.15em}}
+{"main{justify-content:flex-start;padding-top:" + str(pad * 1.1) + "px}" if shape is NARROW else ""}
 """
     )
     return (
