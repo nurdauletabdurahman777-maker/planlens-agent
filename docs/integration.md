@@ -60,6 +60,15 @@ declares for its action. If a handler raises or returns the wrong outputs, the
 runner stops and reports which step failed. There are no retries and nothing is
 repaired.
 
+| | what it holds |
+| --- | --- |
+| `StepCall` | `step_id`, `action`, the read-only `step`, and `inputs`: each input name mapped to the value an earlier handler returned for the output it references |
+| a handler's return value | a mapping of exactly the outputs the catalog declares for the action, or `None` when it declares none |
+| `dispatch()` returns a `DispatchRecord` | `status` (`completed` or `handler_failed`), `dispatched` as `(step_id, action)` pairs in order, `failed_step`, `error` and the `binding` it ran under |
+
+[`examples/guarded_runner.py`](../examples/guarded_runner.py) runs a passing plan, a rejected one, a changed payload
+and a caller-side edit through these calls.
+
 ## Limits of this design
 
 - **A library cannot stop a caller from bypassing it.** Code that executes plans
