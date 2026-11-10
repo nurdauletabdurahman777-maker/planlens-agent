@@ -189,10 +189,14 @@ def judge(block: Block, recorded: list[int]) -> str | None:
 
 
 def offline_pip(wheelhouse: Path) -> dict[str, str]:
-    """pip settings that resolve only from the local wheel. Not a download from any index."""
+    """pip settings that resolve only from the local wheel. Not a download from any index.
+
+    pip splits PIP_FIND_LINKS on whitespace, so the folder is given as a file URL, in which a
+    space is %20. A plain path containing a space would point pip at several missing folders.
+    """
     return {
         "PIP_NO_INDEX": "1",
-        "PIP_FIND_LINKS": str(wheelhouse),
+        "PIP_FIND_LINKS": wheelhouse.resolve().as_uri(),
         "PIP_CONFIG_FILE": os.devnull,
         "PIP_DISABLE_PIP_VERSION_CHECK": "1",
     }

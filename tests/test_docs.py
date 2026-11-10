@@ -553,6 +553,33 @@ def test_only_ordinary_blocks_are_confined_to_the_local_wheel(tmp_path: Path) ->
     assert "does not exercise PyPI" in done.stdout
 
 
+def test_pip_confinement_has_no_whitespace_for_pip_to_split() -> None:
+    links = docs_check.offline_pip(Path("/a folder/with spaces/wheelhouse"))["PIP_FIND_LINKS"]
+    assert links.startswith("file://") and not any(c.isspace() for c in links)
+
+
+@windows
+def test_pip_confinement_points_at_the_wheelhouse_when_the_path_has_spaces(tmp_path: Path) -> None:
+    home = tmp_path / "a folder with spaces"
+    home.mkdir()
+    wheel, checkout = home / "x.whl", home / "checkout"
+    wheel.write_bytes(b"")
+    checkout.mkdir()
+    probe = (
+        'python3 -c "import os, pathlib, urllib.parse, urllib.request; '
+        "url = os.environ['PIP_FIND_LINKS']; "
+        "folder = pathlib.Path(urllib.request.url2pathname(urllib.parse.urlparse(url).path)); "
+        "print('one-folder' if not any(c.isspace() for c in url) and folder.is_dir() "
+        "and any(folder.glob('*.whl')) else 'split')\""
+    )
+    done = run(
+        home,
+        sh(probe, 'contains="one-folder"'),
+        extra=("--wheel", str(wheel), "--checkout", str(checkout)),
+    )
+    assert done.returncode == 0, done.stdout
+
+
 def test_the_journey_installs_the_public_package_by_exact_version() -> None:
     for doc in (ROOT / "README.md", ROOT / "README.pypi.md", ROOT / "docs" / "quickstart.md"):
         text = doc.read_text(encoding="utf-8")
