@@ -86,6 +86,22 @@ def test_the_published_pair_is_the_checked_pair_and_is_never_rebuilt() -> None:
     assert publish.index("sha256sum") < publish.index("gh-action-pypi-publish")
 
 
+def test_the_published_files_are_exactly_the_checked_pair() -> None:
+    step = job(PUBLISH.read_text("utf-8"), "publish")
+    count = step.index('test "${#files[@]}" -eq 2')
+    assert step.index("files=(*)") < count < step.index("sha256sum --check --strict ../SHA256SUMS")
+    assert "ls |" not in step and "ls|" not in step
+
+
+def test_lint_runs_actionlint_with_a_pinned_shellcheck_that_must_report() -> None:
+    source = (ROOT / "scripts" / "ci_local.py").read_text(encoding="utf-8")
+    assert re.search(r'^SHELLCHECK = "shellcheck-py==[0-9.]+"$', source, re.M)
+    assert '"actionlint", f"-shellcheck={shellcheck}"' in source
+    assert source.count("-shellcheck=") == 2  # the canary probe and the real run, never empty
+    assert "shellcheck reported issue" in source and "if true; then echo unterminated" in source
+    assert 'sh("uvx", "--from", ACTIONLINT, "actionlint")\n' not in source
+
+
 def test_publishing_stops_unless_tag_commit_and_main_agree() -> None:
     check = job(PUBLISH.read_text("utf-8"), "check")
     for condition in (

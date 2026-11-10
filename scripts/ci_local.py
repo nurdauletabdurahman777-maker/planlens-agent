@@ -22,6 +22,18 @@ ROOT = Path(__file__).resolve().parents[1]
 RUFF = "ruff@0.17.4"
 MYPY = "mypy@2.4.1"
 ACTIONLINT = "actionlint-py==1.7.12.25"
+# actionlint runs ShellCheck on workflow scripts only when it can find it, and silently skips it
+# otherwise. The lint stage provisions this exact version and proves it reaches the result.
+SHELLCHECK = "shellcheck-py==0.11.0.1"
+SHELLCHECK_VERSION = "0.11.0"
+SHELLCHECK_CANARY = """on: push
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if true; then echo unterminated
+"""
 TWINE = "twine==7.0.0"
 README_RENDERER = "readme-renderer[md]==46.0"
 RECIPE = ROOT / "examples" / "langgraph_gate"
@@ -38,11 +50,42 @@ def sh(*argv: str | Path, cwd: Path = ROOT, env: dict[str, str] | None = None) -
         sys.exit(done.returncode)
 
 
+def pinned_shellcheck() -> str:
+    """The provisioned ShellCheck executable, of exactly the pinned version, or the stage stops."""
+    found = subprocess.run(
+        ["uvx", "--from", SHELLCHECK, "python", "-c",
+         "import pathlib, sys; print(pathlib.Path(sys.executable).with_name('shellcheck'))"],
+        capture_output=True, text=True, check=False,
+    )  # fmt: skip
+    path = Path(found.stdout.strip() + EXE)
+    if found.returncode or not path.is_file():
+        sys.exit(f"lint: could not provision ShellCheck from {SHELLCHECK}")
+    shown = subprocess.run([path, "--version"], capture_output=True, text=True, check=False).stdout
+    if f"version: {SHELLCHECK_VERSION}" not in shown.splitlines():
+        sys.exit(f"lint: {path} is not ShellCheck {SHELLCHECK_VERSION}")
+    return str(path)
+
+
 def lint(python: str, tmp: Path, log: Path | None) -> None:
     sh("uvx", RUFF, "format", "--check", ".")
     sh("uvx", RUFF, "check", ".")
     sh("uvx", MYPY, "--strict", "src/planlens_agent")
-    sh("uvx", "--from", ACTIONLINT, "actionlint")
+    shellcheck = pinned_shellcheck()
+    # A known shell error must come back from actionlint; otherwise shell checks are not running.
+    canary = tmp / "shellcheck-canary.yml"
+    canary.write_text(SHELLCHECK_CANARY, encoding="utf-8")
+    probe = subprocess.run(
+        ["uvx", "--from", ACTIONLINT, "actionlint", f"-shellcheck={shellcheck}", str(canary)],
+        cwd=tmp, capture_output=True, text=True, check=False,
+    )  # fmt: skip
+    if probe.returncode == 0 or "shellcheck reported issue" not in probe.stdout:
+        print(probe.stdout + probe.stderr)
+        sys.exit(
+            "lint: actionlint did not report the canary's ShellCheck error, "
+            "so shell checks are not running"
+        )
+    print(f"+ ShellCheck {SHELLCHECK_VERSION} reaches actionlint (canary reported)", flush=True)
+    sh("uvx", "--from", ACTIONLINT, "actionlint", f"-shellcheck={shellcheck}")
 
 
 def test(python: str, tmp: Path, log: Path | None) -> None:
