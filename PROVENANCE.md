@@ -75,6 +75,7 @@ Exact versions used for the checkpoint A verification:
 | ruff | 0.17.4, run with `uvx` | **no** |
 | mypy | 2.4.1, run with `uvx` | **no** |
 | actionlint | `actionlint-py` 1.7.12.25, run with `uvx` (workflow checks only) | **no**, pinned in `scripts/ci_local.py` |
+| ShellCheck | `shellcheck-py` 0.11.0.1 (ShellCheck 0.11.0), run by actionlint on workflow scripts | **no**, pinned in `scripts/ci_local.py` |
 | LangGraph (recipe only; never a dependency of this project) | 1.2.20 | **no**, pinned with hashes in `examples/langgraph_gate/requirements.lock` |
 
 `uv.lock` is the reproduction lock for the test dependencies and ships in the

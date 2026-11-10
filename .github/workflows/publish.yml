@@ -91,7 +91,8 @@ jobs:
       - name: Stop unless these are exactly the checked files
         working-directory: release-pair/dist
         run: |
-          test "$(ls | wc -l)" -eq 2
+          files=(*)
+          test "${#files[@]}" -eq 2
           sha256sum --check --strict ../SHA256SUMS
       - name: Stop unless CI still passes for this exact commit
         env:

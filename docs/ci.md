@@ -10,7 +10,7 @@ unverified**: see the table.
 code in both places. It needs `uv`.
 
 ```console
-python scripts/ci_local.py lint                  # ruff format and check, mypy --strict, actionlint
+python scripts/ci_local.py lint                  # ruff format and check, mypy --strict, actionlint with pinned ShellCheck
 python scripts/ci_local.py test --python 3.11    # pytest from uv.lock
 python scripts/ci_local.py package --python 3.11 # build, check the release pair, test the installed wheel
 python scripts/ci_local.py journey --python 3.14 # scripts/journey.py against the installed command
