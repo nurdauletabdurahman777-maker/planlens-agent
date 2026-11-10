@@ -11,6 +11,7 @@ Changed
   images and links that would break on PyPI.
 - The README opens with a walkthrough of one authored example, built from real package output and
   a real Inspector capture, and the summary now reads "Catch plan errors before execution".
+- The logo is the approved "Planform" mark, with light, dark and one-colour variants.
 - The selected names are recorded in `docs/naming.md`, with PyPI registration pending.
 
 Compatibility

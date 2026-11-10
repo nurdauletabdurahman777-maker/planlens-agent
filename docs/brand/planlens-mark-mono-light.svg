@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
+     role="img" aria-label="PlanLens">
+  <path fill="#20242C" fill-rule="evenodd"
+    d="M10 8H37C48.6 8 55 14.3 55 25S48.6 42 37 42H22V56H10ZM22 19V31H36C40.8 31 43 29.1 43 25S40.8 19 36 19Z"/>
+  <rect x="43" y="47" width="12" height="12" rx="3" fill="#20242C"/>
+</svg>

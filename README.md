@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/brand/planlens-wordmark-dark.svg">
-    <img alt="PlanLens" src="docs/brand/planlens-wordmark-light.svg" width="220">
+    <img alt="PlanLens" src="docs/brand/planlens-wordmark-light.svg" width="240">
   </picture>
 </p>
 
@@ -14,11 +14,11 @@
     <source media="(prefers-reduced-motion: reduce) and (max-width: 600px)" srcset="docs/media/demo-narrow.png">
     <source media="(prefers-reduced-motion: reduce)" srcset="docs/media/demo.png">
     <source media="(max-width: 600px)" srcset="docs/media/demo-narrow.gif">
-    <img alt="Walkthrough of an authored example. An authored plan has test_rc and scan_rc reference build_rc.artifact while deploy_prod references build_hotfix.artifact. PlanLens rejects it with plan/artifact-identity and the Inspector shows the references that disagree. A person edits a copy of the plan so deploy_prod references build_rc.artifact, and the recheck reports PASS. Nothing is built, tested or deployed." src="docs/media/demo.gif" width="100%">
+    <img alt="Walkthrough of an authored example in five scenes. Plan references: test_rc and scan_rc reference build_rc.artifact, deploy_prod references build_hotfix.artifact, a different build. Diagnosis: PlanLens rejects the plan with plan/artifact-identity. Inspector: the report shows the references that disagree. Manual edit: a person changes deploy_prod's reference in a copy to build_rc.artifact. Recheck: PASS. Nothing is built, tested or deployed." src="docs/media/demo.gif" width="100%">
   </picture>
 </p>
 
-<p align="center"><sub>Authored example. PlanLens compares the references a plan declares: nothing is built, tested or deployed, and a person makes the edit. On-screen notes are editorial. <a href="docs/media/demo.png">Static version</a> · <a href="docs/media/demo-transcript.txt">Complete transcript</a></sub></p>
+<p align="center"><sub>Authored example. Scene labels and notes are editorial. PlanLens compares the references a plan declares: nothing is built, tested or deployed, and a person makes the edit. <a href="docs/media/demo.png">Static version</a> · <a href="docs/media/demo-transcript.txt">Complete transcript</a></sub></p>
 
 <p align="center">
   <a href="#install-and-try-it">Install</a> ·
@@ -83,8 +83,6 @@ The evidence behind the walkthrough. Build, tests, scan, review and deploy are a
     {"id": "review", "action": "code_review"},
     {"id": "deploy_prod", "action": "deploy", "inputs": {"artifact": "build_hotfix.artifact"}}
 ```
-
-<sub>Fragment of the authored plan `plans/artifact-mismatch.json`: the steps only.</sub>
 
 <sub>Fragment of the authored plan `plans/artifact-mismatch.json`: the steps only.</sub>
 

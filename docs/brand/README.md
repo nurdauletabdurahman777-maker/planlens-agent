@@ -1,18 +1,23 @@
 # PlanLens brand
 
-A plan line passes through a lens, and the segment inside is visibly out of line. Use the wordmark as supplied.
+The mark is **Planform**, logo direction 01, approved by the owner. Use the files as supplied.
 
 | File | Use |
 | --- | --- |
-| `planlens-wordmark-light.svg` | On light backgrounds |
-| `planlens-wordmark-dark.svg` | On dark backgrounds |
-| `planlens-mark-light.svg`, `planlens-mark-dark.svg` | Small spaces |
+| `planlens-wordmark-light.svg` | Horizontal lockup, on light backgrounds |
+| `planlens-wordmark-dark.svg` | Horizontal lockup, on dark backgrounds |
+| `planlens-mark-light.svg`, `planlens-mark-dark.svg` | The mark alone, for small spaces |
+| `planlens-wordmark-mono-light.svg`, `planlens-mark-mono-light.svg` | One colour, on light backgrounds |
+| `planlens-wordmark-mono-dark.svg`, `planlens-mark-mono-dark.svg` | One colour, on dark backgrounds |
 
-| Colour | Light | Dark |
+| Colour | On light backgrounds | On dark backgrounds |
 | --- | --- | --- |
-| Ink | `#1F2328` | `#E6EDF3` |
-| Muted | `#59636E` | `#8B949E` |
-| Accent | `#B45309` | `#F59E0B` |
+| Ink | `#20242C` | `#EEF0F4` |
+| Accent | `#CB7100` | `#F5A623` |
+
+The one-colour variants use the ink colour for both elements. The mark is drawn on a 64 × 64 grid. The lockup is
+286 × 64: the mark, then the lettering scaled by 1.35. Every file has a transparent background, outlined lettering
+and no external references.
 
 The wordmark's letters are outlines of IBM Plex Sans SemiBold. Terminal media uses JetBrains Mono. Both are
 licensed under the SIL Open Font License 1.1, and are downloaded at pinned versions when the assets are generated.
