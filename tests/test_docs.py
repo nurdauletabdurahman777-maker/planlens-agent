@@ -154,6 +154,20 @@ def test_the_walkthrough_has_narrow_and_motion_free_versions() -> None:
     assert '<a href="docs/media/demo.png">Static version</a>' in OPENING
 
 
+def size(path: Path) -> tuple[int, int]:
+    data = path.read_bytes()
+    if data.startswith(b"GIF8"):
+        return int.from_bytes(data[6:8], "little"), int.from_bytes(data[8:10], "little")
+    assert data.startswith(b"\x89PNG")
+    return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+
+
+def test_each_static_summary_has_the_footprint_of_its_walkthrough() -> None:
+    for stem in ("demo", "demo-narrow"):
+        media = ROOT / "docs" / "media"
+        assert size(media / f"{stem}.png") == size(media / f"{stem}.gif"), stem
+
+
 def test_the_caption_keeps_the_limits_visible_and_the_edit_human() -> None:
     (caption,) = [x for x in OPENING.splitlines() if "Authored example" in x and "<sub>" in x]
     for phrase in (
@@ -169,13 +183,17 @@ def test_the_caption_keeps_the_limits_visible_and_the_edit_human() -> None:
 def test_the_walkthrough_notes_do_not_claim_a_repair() -> None:
     source = (ROOT / "scripts" / "make_demo_media.py").read_text(encoding="utf-8")
     for phrase in (
-        "A person edits a copy of the plan. PlanLens does not change plans.",
+        "A person changes one reference in a copy. PlanLens does not edit plans.",
         "Nothing was built, tested or deployed.",
-        "Editorial note",
-        "Authored example",
+        "a copy edited by hand",
+        '"Plan references"',
+        '"Diagnosis"',
+        '"Manual edit"',
+        '"Recheck"',
     ):
         assert phrase in source, phrase
     assert "assert 12 <= total <= 18" in source
+    assert "Editorial note" not in source
 
 
 def test_the_inspector_evidence_states_its_limits() -> None:
@@ -208,10 +226,55 @@ def test_no_promotional_or_unsupported_claims(word: str) -> None:
     assert word not in README.lower()
 
 
-def test_the_brand_has_both_themes() -> None:
-    for theme in ("light", "dark"):
-        svg = (ROOT / "docs" / "brand" / f"planlens-wordmark-{theme}.svg").read_text()
-        assert 'aria-label="PlanLens"' in svg and "<text" not in svg
+BRAND = ROOT / "docs" / "brand"
+MARK_PATH = (
+    "M10 8H37C48.6 8 55 14.3 55 25S48.6 42 37 42H22V56H10Z"
+    "M22 19V31H36C40.8 31 43 29.1 43 25S40.8 19 36 19Z"
+)
+APPROVED_MARK = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
+     role="img" aria-label="PlanLens">
+  <path fill="#20242C" fill-rule="evenodd"
+    d="{MARK_PATH}"/>
+  <rect x="43" y="47" width="12" height="12" rx="3" fill="#CB7100"/>
+</svg>
+"""
+VARIANTS = {
+    "light": ("#20242C", "#CB7100"),
+    "dark": ("#EEF0F4", "#F5A623"),
+    "mono-light": ("#20242C", "#20242C"),
+    "mono-dark": ("#EEF0F4", "#EEF0F4"),
+}
+
+
+def test_the_mark_is_exactly_the_approved_planform() -> None:
+    assert (BRAND / "planlens-mark-light.svg").read_text(encoding="utf-8") == APPROVED_MARK
+
+
+@pytest.mark.parametrize("variant", VARIANTS)
+def test_every_variant_uses_its_colours(variant: str) -> None:
+    ink, accent = VARIANTS[variant]
+    for kind in ("mark", "wordmark"):
+        svg = (BRAND / f"planlens-{kind}-{variant}.svg").read_text(encoding="utf-8")
+        assert f'<path fill="{ink}" fill-rule="evenodd"\n    d="{MARK_PATH}"/>' in svg
+        assert f'<rect x="43" y="47" width="12" height="12" rx="3" fill="{accent}"/>' in svg
+        assert set(re.findall(r'fill="([^"]+)"', svg)) == {ink, accent}
+
+
+@pytest.mark.parametrize("variant", VARIANTS)
+def test_the_lockup_places_the_existing_lettering_beside_the_mark(variant: str) -> None:
+    svg = (BRAND / f"planlens-wordmark-{variant}.svg").read_text(encoding="utf-8")
+    assert 'viewBox="0 0 286 64"' in svg
+    assert svg.count('<g transform="translate(0,-1) scale(1.35)">') == 1
+    assert svg.count("<path") == 2
+
+
+@pytest.mark.parametrize("path", sorted(BRAND.glob("*.svg")), ids=lambda p: p.name)
+def test_brand_files_are_transparent_outlined_and_self_contained(path: Path) -> None:
+    svg = path.read_text(encoding="utf-8")
+    assert 'role="img" aria-label="PlanLens"' in svg
+    for token in ("<text", "href", "url(", "<image", "<style", "style=", "@import", "<script"):
+        assert token not in svg, token
+    assert svg.count("<rect") == 1 and '<rect x="43" y="47"' in svg  # no background shape
 
 
 def test_the_case_is_collapsed_and_labelled() -> None:
@@ -219,7 +282,7 @@ def test_the_case_is_collapsed_and_labelled() -> None:
     for summary in ("The plan's steps", "The diagnosis and a correction", "The Inspector report"):
         assert f"<summary><strong>{summary}</strong></summary>" in CASE
     assert CASE.count("<details>") == CASE.count("</details>") == 3
-    assert "Fragment of the authored plan" in CASE
+    assert CASE.count("Fragment of the authored plan") == 1
     assert "saved result" in CASE
 
 

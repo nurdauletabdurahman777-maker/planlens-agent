@@ -4,10 +4,10 @@
 
 Check structured AI-agent plans against your workflow rules. See which requirement failed and the steps involved.
 
-![Walkthrough of an authored example. An authored plan has test_rc and scan_rc reference build_rc.artifact while deploy_prod references build_hotfix.artifact. PlanLens rejects it with plan/artifact-identity and the Inspector shows the references that disagree. A person edits a copy of the plan so deploy_prod references build_rc.artifact, and the recheck reports PASS. Nothing is built, tested or deployed.](https://raw.githubusercontent.com/nurdauletabdurahman777-maker/planlens-agent/v0.1.0/docs/media/demo.gif)
+![Walkthrough of an authored example in five scenes. Plan references: test_rc and scan_rc reference build_rc.artifact, deploy_prod references build_hotfix.artifact, a different build. Diagnosis: PlanLens rejects the plan with plan/artifact-identity. Inspector: the report shows the references that disagree. Manual edit: a person changes deploy_prod's reference in a copy to build_rc.artifact. Recheck: PASS. Nothing is built, tested or deployed.](https://raw.githubusercontent.com/nurdauletabdurahman777-maker/planlens-agent/v0.1.0/docs/media/demo.gif)
 
-*Authored example. PlanLens compares the references a plan declares: nothing is built, tested or deployed, and a person makes the
-edit. On-screen notes are editorial.*
+*Authored example. Scene labels and notes are editorial. PlanLens compares the references a plan declares: nothing is built, tested
+or deployed, and a person makes the edit.*
 
 For developers building plan-and-execute agents. PlanLens reads one structured, sequential plan and checks it, like a linter, against
 actions and workflow rules you own: required actions, step order, artifact references and same-artifact rules. It does not run your
