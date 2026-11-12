@@ -1,0 +1,87 @@
+Complete output of the suite comparison and the execution gate shown in the README, captured from the installed wheel.
+The plans are authored, and the gate's handlers only print. Nothing was built, tested or deployed.
+
+$ planlens-agent suite run suite.toml --plans-dir candidates/v1 --output v1.json
+planlens-agent 0.1.0 - suite run
+  suite     release-candidates  sha256:7b444d28bb4f
+  contract  release-basic 1.0.0  sha256:7bb60e9c3ee7
+  catalog   release-basic 1.0.0  sha256:e85a33811dfb
+  plans     candidates/v1
+  evaluator sha256:e9e73b0a925b
+
+RESULT: REJECTED (exit 1) - 5 cases: 3 passed, 2 rejected, 0 could not be evaluated
+
+  pass    standard#1
+  pass    standard#2
+  reject  hotfix      plan/artifact-identity at deploy_prod
+  pass    expedite
+  reject  legacy      plan/prerequisite-order at deploy_prod
+
+A saved run is a record, not an approval.
+[exit 1]
+
+$ planlens-agent suite run suite.toml --plans-dir candidates/v2 --output v2.json
+planlens-agent 0.1.0 - suite run
+  suite     release-candidates  sha256:7b444d28bb4f
+  contract  release-basic 1.0.0  sha256:7bb60e9c3ee7
+  catalog   release-basic 1.0.0  sha256:e85a33811dfb
+  plans     candidates/v2
+  evaluator sha256:e9e73b0a925b
+
+RESULT: REJECTED (exit 1) - 5 cases: 3 passed, 2 rejected, 0 could not be evaluated
+
+  pass    standard#1
+  pass    standard#2
+  pass    hotfix
+  reject  expedite    plan/prerequisite-order at deploy_prod
+  reject  legacy      plan/prerequisite-order at deploy_prod
+
+A saved run is a record, not an approval.
+[exit 1]
+
+$ planlens-agent suite diff v1.json v2.json
+planlens-agent 0.1.0 - suite diff
+  baseline  v1.json  sha256:4202978c4114  rejected
+  candidate v2.json  sha256:efe2c3d7e1ad  rejected
+
+RESULT: NEW VIOLATIONS (exit 1)
+  1 new, 1 resolved, 1 unchanged, 0 changed evidence, 0 ambiguous
+  5 cases compared, 0 added, 0 removed, 0 not comparable
+  plans: 5 changed, 0 identical
+  candidate run: rejected, 2 case(s) rejected
+
+New findings
+  + expedite: plan/prerequisite-order (review-before-deploy) at deploy_prod
+      steps[3] (deploy_prod) runs 'deploy' before any 'code_review'; 'code_review' appears later, at steps[4] (review)
+
+Resolved findings
+  - hotfix: plan/artifact-identity (deploy-what-was-verified) at deploy_prod
+
+Unchanged findings
+  = legacy: plan/prerequisite-order (scan-before-deploy) at deploy_prod  (moved steps[3] -> steps[4])
+
+A saved run is a record of a check. It is not an approval and cannot be dispatched; execution goes through check().approve() and ReferenceRunner.
+[exit 1]
+
+$ python guarded_runner.py
+1. a passing plan runs, in order, with the planned artifact:
+  binding: a100bb5a50d71ca1 ...
+  dispatch build_rc     build          inputs={}
+  dispatch test_rc      unit_tests     inputs={'artifact': '<bytes built by build_rc>'}
+  dispatch scan_rc      security_scan  inputs={'artifact': '<bytes built by build_rc>'}
+  dispatch review       code_review    inputs={}
+  dispatch deploy_prod  deploy         inputs={'artifact': '<bytes built by build_rc>'}
+  dispatch announce     notify         inputs={}
+2. a rejected plan cannot be approved, so nothing runs:
+  plan not approved: verdict is 'reject' with 1 finding(s); a rejected or unevaluated plan cannot be dispatched
+3. a payload changed after the check is blocked until it is checked again:
+  dispatch blocked: the presented payload (sha256:7bf23677bf29) is not the approved plan (sha256:a100bb5a50d7); check it again to obtain a new approval (dispatched: 0)
+4. mutating the original object after approval does not change what runs:
+  dispatch build_rc     build          inputs={}
+  dispatch test_rc      unit_tests     inputs={'artifact': '<bytes built by build_rc>'}
+  dispatch scan_rc      security_scan  inputs={'artifact': '<bytes built by build_rc>'}
+  dispatch review       code_review    inputs={}
+  dispatch deploy_prod  deploy         inputs={'artifact': '<bytes built by build_rc>'}
+  dispatch announce     notify         inputs={}
+  dispatched: ['build_rc', 'test_rc', 'scan_rc', 'review', 'deploy_prod', 'announce']
+[exit 0]

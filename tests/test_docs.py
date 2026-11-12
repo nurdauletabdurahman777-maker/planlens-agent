@@ -21,6 +21,8 @@ DOCS = [
     ROOT / "README.md",
     ROOT / "README.pypi.md",
     ROOT / "CONTRIBUTING.md",
+    ROOT / "SECURITY.md",
+    ROOT / "CODE_OF_CONDUCT.md",
     ROOT / "examples" / "README.md",
     *sorted((ROOT / "docs").glob("*.md")),
     ROOT / "docs" / "brand" / "README.md",
@@ -81,13 +83,31 @@ def test_an_inline_comment_is_refused_because_zsh_would_run_it() -> None:
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 PLAN = (TEMPLATE / "plans" / "artifact-mismatch.json").read_text(encoding="utf-8")
 TRANSCRIPT = (ROOT / "docs" / "media" / "demo-transcript.txt").read_text(encoding="utf-8")
-CASE = README[README.index("## The example in detail") : README.index("## Integrate")]
+CASE = README[README.index("## The example in detail") : README.index("## Scope and evidence")]
+GALLERY = README[README.index("## See it work") : README.index("## How it fits")]
+FITS = README[README.index("## How it fits") : README.index("## The example in detail")]
 OPENING = README[: README.index("## Install and try it")]
+CAPABILITIES = (ROOT / "docs" / "media" / "capabilities-transcript.txt").read_text(encoding="utf-8")
+OWNER_REPO = "https://github.com/nurdauletabdurahman777-maker/planlens-agent"
+LINKEDIN = "https://www.linkedin.com/in/nurdaulet-abdrakhman-523784375"
+
+
+def flat(text: str) -> str:
+    """Text with every run of whitespace as one space, so line wrapping does not matter."""
+    return " ".join(text.split())
 
 
 def test_images_have_descriptive_alt_text_and_reasonable_size() -> None:
-    assert len(re.search(r'alt="(Walkthrough of an authored example[^"]+)"', README).group(1)) > 80  # type: ignore[union-attr]
-    assert len(re.search(r'alt="(PlanLens inspector[^"]+)"', README).group(1)) > 80  # type: ignore[union-attr]
+    for start in (
+        "Walkthrough of an authored example",
+        "PlanLens inspector",
+        "Terminal output of planlens-agent",
+        "Authored Python from examples/guarded_runner.py",
+        "Diagram. Your planner",
+    ):
+        assert len(re.search(f'alt="({re.escape(start)}[^"]+)"', README).group(1)) > 80, start  # type: ignore[union-attr]
+    for tag in re.findall(r"<img [^>]*>", README):
+        assert re.search(r'alt="[^"]{6,}"', tag), tag
     limits = {
         "demo.gif": 600_000,
         "demo.png": 400_000,
@@ -100,6 +120,12 @@ def test_images_have_descriptive_alt_text_and_reasonable_size() -> None:
         "inspector-finding-narrow.png": 300_000,
         "inspector-finding-narrow-light.png": 300_000,
         "social-preview.png": 1_000_000,
+        "suite-diff.png": 300_000,
+        "suite-diff-narrow.png": 300_000,
+        "gate.png": 300_000,
+        "gate-narrow.png": 300_000,
+        "architecture-light.svg": 200_000,
+        "architecture-dark.svg": 200_000,
     }
     for name, limit in limits.items():
         assert (ROOT / "docs" / "media" / name).stat().st_size < limit, name
@@ -126,15 +152,46 @@ def test_the_opening_states_its_audience_and_scope() -> None:
         "plan-and-execute agents",
         "structured, sequential plan",
         "required actions, step order, artifact references and same-artifact rules",
-        "does not\nrun your steps",
+        "does not run your steps",
+        "calls no model",
         "#install-and-try-it",
-        "first public release",
     ):
-        assert phrase.lower() in OPENING.lower(), phrase
+        assert phrase.lower() in flat(OPENING).lower(), phrase
+
+
+BADGES = {  # badge image -> where it links
+    f"{OWNER_REPO}/actions/workflows/ci.yml/badge.svg?branch=main": (
+        f"{OWNER_REPO}/actions/workflows/ci.yml?query=branch%3Amain"
+    ),
+    "https://img.shields.io/pypi/v/planlens-agent?label=PyPI&color=20242C": (
+        "https://pypi.org/project/planlens-agent/"
+    ),
+    "https://img.shields.io/badge/Python-3.11%2B-20242C": "pyproject.toml",
+    "https://img.shields.io/badge/License-Apache--2.0-20242C": "LICENSE",
+}
+LINKED_IMAGE = re.compile(r'<a href="([^"]+)"><img alt="[^"]+" src="([^"]+)"></a>')
+
+
+def test_the_badges_are_live_ci_and_true_facts_each_linked() -> None:
+    linked = {src: href for href, src in LINKED_IMAGE.findall(OPENING)}
+    assert linked == BADGES
+    assert PROJECT["project"]["requires-python"] == ">=3.11"
+    assert PROJECT["project"]["license"] == "Apache-2.0"
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "name: CI" in workflow.splitlines()
+
+
+def test_no_popularity_coverage_or_adoption_badges() -> None:
+    sources = " ".join(re.findall(r'src="([^"]+)"', README)).lower()
+    for word in ("stars", "downloads", "dm/", "coverage", "codecov", "followers", "contributors"):
+        assert word not in sources, word
 
 
 def test_one_primary_visual_comes_before_the_details() -> None:
-    assert OPENING.count("<img") == 2  # the wordmark and the walkthrough
+    images = re.findall(r"<img [^>]*>", OPENING)
+    badges = [tag for tag in images if any(f'src="{src}"' in tag for src in BADGES)]
+    assert len(badges) == len(BADGES)
+    assert len(images) - len(badges) == 2  # the wordmark and the walkthrough
     assert README.index("docs/media/demo.gif") < README.index("## Install and try it")
     assert README.index("## Install and try it") < README.index("```json")
     assert README.index("## Install and try it") < README.index("inspector-finding")
@@ -198,17 +255,114 @@ def test_the_walkthrough_notes_do_not_claim_a_repair() -> None:
 
 def test_the_inspector_evidence_states_its_limits() -> None:
     for phrase in (
-        "`test_rc` and `scan_rc` reference `build_rc.artifact`",
-        "`deploy_prod`\nreferences `build_hotfix.artifact`",
+        "A real report from <code>planlens-agent inspect</code> for the authored example",
+        "<code>test_rc</code> and <code>scan_rc</code> reference <code>build_rc.artifact</code>",
+        "<code>deploy_prod</code> references <code>build_hotfix.artifact</code>",
         "did not inspect artifact bytes, run tests or deploy anything",
-        "cannot tell which\nreference is the wrong one",
+        "cannot tell which reference is the wrong one",
     ):
-        assert phrase in CASE, phrase
+        assert phrase in flat(GALLERY), phrase
 
 
 def test_the_inspector_evidence_selects_by_width_and_theme() -> None:
     for name in ("inspector-finding-narrow.png", "inspector-finding-narrow-light.png"):
-        assert 'media="(max-width: 600px)' in CASE and f"docs/media/{name}" in CASE
+        assert 'media="(max-width: 600px)' in GALLERY and f"docs/media/{name}" in GALLERY
+    assert (
+        'media="(prefers-color-scheme: dark)" srcset="docs/media/inspector-finding.png"' in GALLERY
+    )
+
+
+def test_each_capability_visual_has_a_narrow_version_and_no_motion() -> None:
+    for stem in ("suite-diff", "gate"):
+        assert f'media="(max-width: 600px)" srcset="docs/media/{stem}-narrow.png"' in GALLERY
+        assert f'src="docs/media/{stem}.png"' in GALLERY
+        assert size(ROOT / "docs" / "media" / f"{stem}.png")[0] == 1200
+        assert size(ROOT / "docs" / "media" / f"{stem}-narrow.png")[0] == 720
+    assert ".gif" not in GALLERY + FITS
+
+
+def test_the_captions_say_what_is_real_authored_and_editorial() -> None:
+    captions = [flat(x) for x in re.findall(r"<sub>(.*?)</sub>", GALLERY, re.S)]
+    assert len(captions) == 3
+    inspector, suite, gate = captions
+    assert "A real report" in inspector and "authored example" in inspector
+    for phrase in ("Real output", "authored", "marks omitted lines", "editorial"):
+        assert phrase in suite, phrase
+    for phrase in ("authored example whose handlers only print", "output is real", "editorial"):
+        assert phrase in gate, phrase
+    for caption in (suite, gate):
+        assert '<a href="docs/media/capabilities-transcript.txt">Complete transcript</a>' in caption
+
+
+def test_the_diagram_has_both_themes_and_matches_its_description() -> None:
+    assert 'srcset="docs/media/architecture-dark.svg"' in FITS
+    assert 'src="docs/media/architecture-light.svg"' in FITS
+    for theme in ("light", "dark"):
+        svg = (ROOT / "docs" / "media" / f"architecture-{theme}.svg").read_text(encoding="utf-8")
+        assert svg.startswith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 424"')
+        assert 'role="img" aria-label="' in svg
+        for token in ("<text", "href", "url(", "<image", "<script", "@import"):
+            assert token not in svg, token
+    source = (ROOT / "scripts" / "make_demo_media.py").read_text(encoding="utf-8")
+    alt = re.search(r'alt="(Diagram\.[^"]+)"', FITS).group(1)  # type: ignore[union-attr]
+    for drawn in (
+        "Your planner",
+        "Your rules",
+        "Execution gate",
+        "Diagnostics",
+        "exit 0",
+        "exit 2",
+    ):
+        assert f'"{drawn}' in source or drawn in source, drawn
+        assert drawn.lower().replace("your ", "") in alt.lower(), drawn
+
+
+# A saved run records the Python version, so the digest `suite diff` prints for each run file
+# depends on the interpreter that wrote it. Only those two digests are set aside.
+RUN_FILE_DIGEST = re.compile(r"^(  (?:baseline|candidate) +\S+ +)sha256:[0-9a-f]{12}", re.M)
+
+
+def without_run_digests(text: str) -> str:
+    return RUN_FILE_DIGEST.sub(r"\1sha256:<run file>", text)
+
+
+def test_the_capability_transcript_is_real_output(tmp_path: Path) -> None:
+    import shutil
+
+    work = tmp_path / "demo"
+    shutil.copytree(TEMPLATE, work)
+    transcript = without_run_digests(CAPABILITIES)
+    assert transcript.count("sha256:<run file>") == 2
+    for plans, saved in (("candidates/v1", "v1.json"), ("candidates/v2", "v2.json")):
+        done = run_cli(
+            "suite", "run", "suite.toml", "--plans-dir", plans, "--output", saved, cwd=work
+        )
+        assert done.returncode == 1
+        command = f"$ planlens-agent suite run suite.toml --plans-dir {plans} --output {saved}"
+        assert f"{command}\n{done.stdout.rstrip()}\n[exit 1]" in CAPABILITIES
+    done = run_cli("suite", "diff", "v1.json", "v2.json", cwd=work)
+    assert done.returncode == 1
+    shown = without_run_digests(done.stdout.rstrip())
+    assert f"$ planlens-agent suite diff v1.json v2.json\n{shown}\n[exit 1]" in transcript
+    shutil.copy(ROOT / "examples" / "guarded_runner.py", work)
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    gate = subprocess.run(
+        [sys.executable, "guarded_runner.py"], cwd=work, capture_output=True, text=True, env=env
+    )
+    assert gate.returncode == 0, gate.stderr
+    assert f"$ python guarded_runner.py\n{gate.stdout.rstrip()}\n[exit 0]" in CAPABILITIES
+    assert "/Users/" not in CAPABILITIES and "/private/" not in CAPABILITIES
+
+
+def test_the_capability_visuals_quote_only_real_lines() -> None:
+    source = (ROOT / "scripts" / "make_demo_media.py").read_text(encoding="utf-8")
+    for phrase in (
+        'assert diff[n] == "RESULT: NEW VIOLATIONS (exit 1)"',
+        "assert source.count(code) == 1, code",
+        'assert blocked.endswith("(dispatched: 0)"), blocked',
+        "font-variant-ligatures:none",
+    ):
+        assert phrase in source, phrase
 
 
 @pytest.mark.parametrize(
@@ -220,10 +374,28 @@ def test_the_inspector_evidence_selects_by_width_and_theme() -> None:
         "enterprise-grade",
         "production-ready",
         "stars",
+        "blazing",
+        "trusted by",
+        "testimonial",
     ],
 )
 def test_no_promotional_or_unsupported_claims(word: str) -> None:
     assert word not in README.lower()
+
+
+def test_the_page_does_not_lean_on_the_linter_label() -> None:
+    assert README.lower().count("linter") <= 1
+
+
+def test_security_and_conduct_use_only_the_approved_contact() -> None:
+    for name in ("SECURITY.md", "CODE_OF_CONDUCT.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert LINKEDIN in text, name
+        assert not re.search(r"[\w.+-]+@[\w-]+\.[\w.]+", text), name  # no email address
+        assert "Nurdaulet Abdrakhman" in text, name
+    security = (ROOT / "SECURITY.md").read_text(encoding="utf-8")
+    assert "Do not open a public issue" in security and "0.1.x" in security
+    assert "no fixed response time" in flat(security)
 
 
 BRAND = ROOT / "docs" / "brand"
@@ -279,9 +451,9 @@ def test_brand_files_are_transparent_outlined_and_self_contained(path: Path) -> 
 
 def test_the_case_is_collapsed_and_labelled() -> None:
     assert "<details>" in CASE and "<details open" not in CASE
-    for summary in ("The plan's steps", "The diagnosis and a correction", "The Inspector report"):
+    for summary in ("The plan's steps", "The diagnosis and a correction"):
         assert f"<summary><strong>{summary}</strong></summary>" in CASE
-    assert CASE.count("<details>") == CASE.count("</details>") == 3
+    assert CASE.count("<details>") == CASE.count("</details>") == 2
     assert CASE.count("Fragment of the authored plan") == 1
     assert "saved result" in CASE
 
