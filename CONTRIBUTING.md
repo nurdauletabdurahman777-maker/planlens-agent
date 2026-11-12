@@ -43,6 +43,7 @@ uv run --script scripts/make_demo_media.py
 ```
 
 This rebuilds `docs/media` and `docs/brand` from the real package. Its tools are used only by that script.
+Add `--only NAME` to rebuild selected outputs, for example `--only capabilities`; `--help` lists the names.
 
 ## Report a bug
 

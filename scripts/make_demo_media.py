@@ -23,6 +23,7 @@ import hashlib
 import html
 import io
 import json
+import math
 import re
 import subprocess
 import tempfile
@@ -46,6 +47,10 @@ FONTS = {
     "plex": (
         f"{CDN}/ibm-plex-sans@5.3.0/files/ibm-plex-sans-latin-600-normal.woff2",
         "8960851d691c054ed38e259bdcf1a6190d157b4203ed5bb32c632a863fb8ec2f",
+    ),
+    "plex400": (
+        f"{CDN}/ibm-plex-sans@5.3.0/files/ibm-plex-sans-latin-400-normal.woff2",
+        "3b646991d30055a93a4ecc499713d4347953a74a947ecab435ab72070cbdab0e",
     ),
     "mono": (
         f"{CDN}/jetbrains-mono@5.3.0/files/jetbrains-mono-latin-400-normal.woff2",
@@ -75,6 +80,20 @@ FAIL = "plans/artifact-mismatch.json"
 SED = f"sed 's/build_hotfix.artifact/build_rc.artifact/' {FAIL} > my-plan.json"
 WRONG, RIGHT = "build_hotfix.artifact", "build_rc.artifact"
 OMITTED = "…"
+# Static cards for the README's capability visuals: no motion, height follows the content.
+CARD = {"width": 1200, "height": 0, "mono": 22, "label": 19, "note": 28, "pad": 40}
+CARD_NARROW = {"width": 720, "height": 0, "mono": 26, "label": 22, "note": 32, "pad": 32}
+for _card in (CARD, CARD_NARROW):
+    _card["cols"] = int((_card["width"] - 2 * _card["pad"]) / (_card["mono"] * 0.6)) - 1
+SUITE_RUNS = (("candidates/v1", "v1.json"), ("candidates/v2", "v2.json"))
+GATE_EXAMPLE = ROOT / "examples" / "guarded_runner.py"
+GATE_CODE = (
+    'approval = check(plan, "contract.toml", "catalog.toml").approve()',
+    "runner.dispatch(approval, payload=plan)",
+    "rejected.approve()",
+    "runner.dispatch(approval, payload=changed)",
+)
+BUILDERS = ("brand", "walkthrough", "inspector", "social", "capabilities", "architecture")
 
 
 def fetch_fonts(tmp: Path) -> dict[str, Path]:
@@ -96,6 +115,7 @@ def capture(tmp: Path) -> tuple[Path, dict[str, str]]:
 
     assert sh("uv", "build", "--wheel", "--out-dir", tmp / "w").returncode == 0
     (wheel,) = (tmp / "w").glob("*.whl")
+    print(wheel.name, "sha256", hashlib.sha256(wheel.read_bytes()).hexdigest())
     assert sh("uv", "venv", "-q", "--python", "3.14", tmp / "env").returncode == 0
     done = sh("uv", "pip", "install", "-q", "--python", tmp / "env/bin/python", "--no-deps", wheel)
     assert done.returncode == 0, done.stderr
@@ -142,7 +162,40 @@ def capture(tmp: Path) -> tuple[Path, dict[str, str]]:
     (MEDIA / "demo-transcript.txt").write_text(
         header + "\n" + "\n".join(transcript).rstrip("\n") + "\n"
     )
+    out.update(capture_capabilities(tmp, demo))
     return demo / "report.html", out
+
+
+def capture_capabilities(tmp: Path, demo: Path) -> dict[str, str]:
+    """Run the suite comparison and the execution gate after the walkthrough, in the same folder."""
+    transcript: list[str] = []
+
+    def record(code: int, shown: str, *argv: str | Path) -> str:
+        done = subprocess.run([str(a) for a in argv], cwd=demo, capture_output=True, text=True)
+        assert done.returncode == code, (shown, done.returncode, done.stderr)
+        assert str(tmp) not in done.stdout, "output would expose a local path"
+        transcript.extend([f"$ {shown}", done.stdout.rstrip("\n"), f"[exit {code}]", ""])
+        return done.stdout
+
+    cli, out = tmp / "env/bin/planlens-agent", {}
+    for plans, saved in SUITE_RUNS:
+        argv = ("suite", "run", "suite.toml", "--plans-dir", plans, "--output", saved)
+        out[f"suite {saved}"] = record(1, f"planlens-agent {' '.join(argv)}", cli, *argv)
+    argv = ("suite", "diff", *(saved for _, saved in SUITE_RUNS))
+    out["suite diff"] = record(1, f"planlens-agent {' '.join(argv)}", cli, *argv)
+    (demo / GATE_EXAMPLE.name).write_text(GATE_EXAMPLE.read_text())
+    out["gate"] = record(
+        0, f"python {GATE_EXAMPLE.name}", tmp / "env/bin/python", GATE_EXAMPLE.name
+    )
+    header = (
+        "Complete output of the suite comparison and the execution gate shown in the README, "
+        "captured from the installed wheel.\nThe plans are authored, and the gate's handlers "
+        "only print. Nothing was built, tested or deployed.\n"
+    )
+    (MEDIA / "capabilities-transcript.txt").write_text(
+        header + "\n" + "\n".join(transcript).rstrip("\n") + "\n"
+    )
+    return out
 
 
 def wrap(line: str, cols: int) -> list[str]:
@@ -328,6 +381,7 @@ def style(fonts: dict[str, Path], shape: dict[str, int]) -> str:
             ("Sans", fonts["plex"]),
             ("Mono", fonts["mono"]),
             ("MonoB", fonts["bold"]),
+            ("Plex4", fonts["plex400"]),
         )
     )
     pad, mono = shape["pad"], shape["mono"]
@@ -335,6 +389,8 @@ def style(fonts: dict[str, Path], shape: dict[str, int]) -> str:
 *{{box-sizing:border-box;margin:0}}
 html,body{{width:{shape["width"]}px;height:{shape["height"]}px;background:{BG};overflow:hidden}}
 body{{color:{FG};font:{mono}px/1.45 Mono}}
+/* Show output exactly as typed: no ligature may turn -> or != into another glyph. */
+body{{font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0}}
 b{{font-family:MonoB;font-weight:400}}
 .dim{{color:{DIM}}}.prompt{{color:{PROMPT}}}.bad{{color:{RED}}}.good{{color:{GREEN}}}
 .label{{font:{shape["label"]}px/1 MonoB;color:{ACCENT};letter-spacing:.06em;
@@ -486,10 +542,12 @@ def build_walkthrough(
         )
 
 
-def text_path(font: TTFont, text: str, size: float, x: float, baseline: float) -> tuple[str, float]:
+def text_path(
+    font: TTFont, text: str, size: float, x: float, baseline: float, digits: int = 2
+) -> tuple[str, float]:
     glyphs, cmap, hmtx = font.getGlyphSet(), font.getBestCmap(), font["hmtx"]
     scale = size / font["head"].unitsPerEm
-    pen = SVGPathPen(glyphs, ntos=lambda v: f"{v:.2f}".rstrip("0").rstrip("."))
+    pen = SVGPathPen(glyphs, ntos=lambda v: f"{v:.{digits}f}".rstrip("0").rstrip("."))
     for char in text:
         name = cmap[ord(char)]
         glyphs[name].draw(TransformPen(pen, (scale, 0, 0, -scale, x, baseline)))
@@ -555,14 +613,16 @@ def build_social(fonts: dict[str, Path], out: dict[str, str], browser: object, t
         + f"""
 body{{padding:64px 80px;display:flex;flex-direction:column;justify-content:space-between}}
 .lockup svg{{height:60px;width:auto;display:block}}
-h1{{font:58px/1.12 Sans;margin-top:30px;letter-spacing:-.5px}}
+h1{{font:56px/1.12 Sans;margin-top:28px;letter-spacing:-.5px}}
+.lede{{font:27px/1.3 Plex4;color:{DIM};margin-top:14px}}
 .result{{margin-top:16px}}
 .tag{{position:absolute;right:80px;top:84px;font:20px Mono;color:{DIM}}}
 """
     )
     (tmp / "social.html").write_text(
         f"<!doctype html><meta charset=utf-8><style>{css}</style>"
-        f'<div><div class="lockup">{lockup}</div><h1>Catch plan errors before execution.</h1></div>'
+        f'<div><div class="lockup">{lockup}</div><h1>Catch plan errors before execution.</h1>'
+        '<p class="lede">Check structured AI-agent plans against your workflow rules.</p></div>'
         f'<div>{rows}<pre class="result">{paint(str(e["rejected"]))}\n'
         f"<b>{html.escape(str(e['rule']))}</b>  {html.escape(str(e['contract_rule']))}</pre></div>"
         '<div class="tag">Authored example</div>'
@@ -570,6 +630,7 @@ h1{{font:58px/1.12 Sans;margin-top:30px;letter-spacing:-.5px}}
     page = browser.new_page(viewport={"width": 1280, "height": 640})  # type: ignore[attr-defined]
     page.goto((tmp / "social.html").as_uri())
     page.wait_for_timeout(300)
+    assert page.evaluate("() => document.body.scrollHeight") <= 640
     page.screenshot(path=str(MEDIA / "social-preview.png"))
     page.close()
     Image.open(MEDIA / "social-preview.png").convert("RGB").quantize(
@@ -633,22 +694,272 @@ def build_finding_crops(report: Path, browser: object) -> None:
             image.quantize(colors=200, dither=Image.Dither.NONE).save(path, optimize=True)
 
 
+def line_class(text: str) -> str:
+    """Colour for one line of real output, chosen from its text. The characters are unchanged."""
+    body = text.lstrip(" ")
+    if text.startswith(("RESULT: REJECTED", "RESULT: NEW VIOLATIONS")) or body.startswith("+ "):
+        return "bad"
+    if text.startswith(("RESULT: PASS", "RESULT: NO NEW VIOLATIONS")) or body.startswith("- "):
+        return "good"
+    if body.startswith("= ") or text == OMITTED:
+        return "dim"
+    if text in ("New findings", "Resolved findings", "Unchanged findings"):
+        return "head"
+    return ""
+
+
+def output_block(lines: list[str], cols: int) -> str:
+    """Lines as a terminal shows them, wrapped at word boundaries, coloured by their line."""
+    parts = []
+    for line in lines:
+        cls = line_class(line)
+        for piece in wrap(line, cols):
+            safe = html.escape(piece, quote=False)
+            if piece.startswith("$ "):
+                parts.append(f'<span class="prompt">$</span> {safe[2:]}')
+            else:
+                parts.append(f'<span class="{cls}">{safe}</span>' if cls else safe)
+    return "<pre>" + "\n".join(parts) + "</pre>"
+
+
+def section(lines: list[str], start: str, end: str) -> list[str]:
+    """The non-blank lines strictly between two marker lines of real output."""
+    first = next(n for n, line in enumerate(lines) if line.startswith(start))
+    last = next(n for n, line in enumerate(lines) if n > first and line.startswith(end))
+    return [line for line in lines[first + 1 : last] if line.strip()]
+
+
+def suite_lines(out: dict[str, str]) -> list[str]:
+    """Commands and excerpts of the real suite output, in order. OMITTED marks a skipped line."""
+    shown: list[str] = []
+    for plans, saved in SUITE_RUNS:
+        (result,) = pick(out[f"suite {saved}"], "RESULT:")
+        assert result.startswith("RESULT: REJECTED (exit 1)"), result
+        command = f"planlens-agent suite run suite.toml --plans-dir {plans} --output {saved}"
+        shown += [f"$ {command}", result]
+    diff = out["suite diff"].splitlines()
+    (n,) = [n for n, line in enumerate(diff) if line.startswith("RESULT:")]
+    assert diff[n] == "RESULT: NEW VIOLATIONS (exit 1)", diff[n]
+    assert diff[n + 1].startswith("  1 new, 1 resolved, 1 unchanged"), diff[n + 1]
+    findings = section(diff, "New findings", "A saved run is")
+    names = ("New findings", "Resolved findings", "Unchanged findings")
+    assert [x for x in findings if x in names] == list(names[1:]), findings
+    command = " ".join(saved for _, saved in SUITE_RUNS)
+    return [*shown, f"$ planlens-agent suite diff {command}", diff[n], diff[n + 1], OMITTED,
+            "New findings", *findings]  # fmt: skip
+
+
+def gate_blocks(out: dict[str, str]) -> list[tuple[str, str, list[str]]]:
+    """Each scenario: an editorial label, one line of the authored example, and its real output."""
+    source = [line.strip() for line in GATE_EXAMPLE.read_text().splitlines()]
+    for code in GATE_CODE:
+        assert source.count(code) == 1, code
+    lines = out["gate"].splitlines()
+    first = section(lines, "1. ", "2. ")
+    dispatched = [line for line in first if line.startswith("  dispatch ")]
+    assert len(dispatched) == 6 and "deploy_prod" in dispatched[4], dispatched
+    (refused,) = section(lines, "2. ", "3. ")
+    (blocked,) = section(lines, "3. ", "4. ")
+    assert refused.startswith("  plan not approved:") and blocked.startswith("  dispatch blocked:")
+    assert blocked.endswith("(dispatched: 0)"), blocked
+    return [
+        ("Passed: dispatched in order", "\n".join(GATE_CODE[:2]),
+         [dispatched[0], OMITTED, dispatched[4]]),
+        ("Rejected: cannot be approved", GATE_CODE[2], [refused]),
+        ("Changed after the check: blocked", GATE_CODE[3], [blocked]),
+    ]  # fmt: skip
+
+
+def card_page(
+    fonts: dict[str, Path], shape: dict[str, int], label: str, note: str, body: str
+) -> str:
+    pad, mono = shape["pad"], shape["mono"]
+    css = (
+        style(fonts, shape)
+        + f"""
+html,body{{height:auto;overflow:visible}}
+header{{padding:{pad * 0.8}px {pad}px {pad * 0.6}px;border-bottom:1px solid #21262D}}
+main{{padding:{pad * 0.55}px {pad}px {pad * 0.8}px}}
+.head{{font-family:MonoB}}
+.block{{border-left:3px solid #30363D;padding:{mono * 0.15}px 0 {mono * 0.15}px {mono * 0.7}px;
+  margin-top:{pad * 0.55}px}}
+.block .label{{display:block;margin-bottom:{mono * 0.45}px;color:{FG}}}
+.code{{color:{OTHER};margin-bottom:{mono * 0.35}px}}
+"""
+    )
+    return (
+        f"<!doctype html><meta charset=utf-8><style>{css}</style>"
+        f'<header><span class="label">{html.escape(label)}</span>'
+        f'<p class="note">{html.escape(note)}</p></header><main>{body}</main>'
+    )
+
+
+def card_shot(page: object, tmp: Path, markup: str, name: str, width: int) -> Path:
+    """Screenshot a card at its natural height, refusing any horizontal overflow."""
+    path = tmp / f"{name}.html"
+    path.write_text(markup)
+    page.set_viewport_size({"width": width, "height": 200})  # type: ignore[attr-defined]
+    page.goto(path.as_uri())  # type: ignore[attr-defined]
+    page.wait_for_timeout(300)  # type: ignore[attr-defined]
+    overflow = page.evaluate(  # type: ignore[attr-defined]
+        "() => Math.max(document.documentElement.scrollWidth - innerWidth,"
+        " ...[...document.querySelectorAll('pre')].map(m => m.scrollWidth - m.clientWidth))"
+    )
+    assert overflow <= 0, (name, overflow)
+    height = page.evaluate("() => document.documentElement.scrollHeight")  # type: ignore[attr-defined]
+    shot = Image.open(io.BytesIO(page.screenshot(full_page=True))).convert("RGB")  # type: ignore[attr-defined]
+    assert shot.size == (width, height), (name, shot.size, height)
+    target = MEDIA / f"{name}.png"
+    shot.quantize(colors=96, dither=Image.Dither.NONE).save(target, optimize=True)
+    return target
+
+
+def build_capabilities(
+    fonts: dict[str, Path], out: dict[str, str], browser: object, tmp: Path
+) -> None:
+    suite, gate = suite_lines(out), gate_blocks(out)
+    page = browser.new_page()  # type: ignore[attr-defined]
+    for shape, ending in ((CARD, ""), (CARD_NARROW, "-narrow")):
+        cols = shape["cols"]
+        body = (
+            '<div class="source">Excerpt · real output of planlens-agent 0.1.0 · '
+            "authored candidate plans</div>" + output_block(suite, cols)
+        )
+        note = "Save a run before and after a planner change, then compare them."
+        card_shot(page, tmp, card_page(fonts, shape, "Suite comparison", note, body),
+                  f"suite-diff{ending}", shape["width"])  # fmt: skip
+        inner = cols - 2
+        blocks = "".join(
+            f'<div class="block"><span class="label">{html.escape(label)}</span>'
+            f'<pre class="code">{html.escape(code)}</pre>{output_block(lines, inner)}</div>'
+            for label, code, lines in gate
+        )
+        body = (
+            f'<div class="source">Code: {GATE_EXAMPLE.relative_to(ROOT).as_posix()}, authored · '
+            "output: real · handlers only print</div>" + blocks
+        )
+        note = "Only a plan that passed, and only that exact snapshot, is dispatched."
+        card_shot(page, tmp, card_page(fonts, shape, "Execution gate", note, body),
+                  f"gate{ending}", shape["width"])  # fmt: skip
+    page.close()
+    for name in ("suite-diff", "suite-diff-narrow", "gate", "gate-narrow"):
+        width, height = Image.open(MEDIA / f"{name}.png").size
+        print(f"{name}.png: {width}x{height}")
+
+
+ARCH_THEMES = {
+    "light": {"ink": "#20242C", "accent": "#CB7100", "muted": "#59636E", "fill": "#F6F8FA",
+              "line": "#D1D9E0", "page": "#FFFFFF"},
+    "dark": {"ink": "#EEF0F4", "accent": "#F5A623", "muted": "#9198A1", "fill": "#151B23",
+             "line": "#3D444D", "page": "#0D1117"},
+}  # fmt: skip
+ARCH_BOXES = (
+    (4, 4, "Your planner", ("proposes a plan as JSON", "treated as untrusted")),
+    (294, 4, "Your rules", ("catalog and contract,", "set by you, not the agent")),
+    (4, 320, "Execution gate", ("approve(), then dispatch", "the exact checked plan")),
+    (294, 320, "Diagnostics", ("rule, step, why and next;", "nothing is dispatched")),
+)
+ARCH_LABEL = "Planner, rules, PlanLens, then the execution gate or diagnostics"
+
+
+def build_architecture(fonts: dict[str, Path]) -> None:
+    """A small diagram with outlined lettering, so it looks the same wherever it is shown."""
+    semi, regular = TTFont(fonts["plex"]), TTFont(fonts["plex400"])
+    width, height, box_w, box_h = 560, 424, 262, 100
+
+    def words(font: TTFont, text: str, size: float, x: float, y: float, fill: str,
+              right: float | None = None, limit: float | None = None) -> str:  # fmt: skip
+        x0, _, x1, _ = text_bounds(font, text, size, 0, y)
+        # Outlines are written at 1 decimal: ample for a 560-unit drawing, and a smaller file.
+        if right is not None:
+            x = right - x1
+        assert limit is None or x + x1 <= limit, (text, x + x1, limit)
+        assert 0 <= x + x0 and x + x1 <= width, text
+        outline, _ = text_path(font, text, size, x, y, digits=1)
+        return f'  <path fill="{fill}" d="{outline}"/>\n'
+
+    def arrow(x1: float, y1: float, x2: float, y2: float, colour: str) -> str:
+        angle = math.atan2(y2 - y1, x2 - x1)
+        tip = [(x2, y2)] + [
+            (x2 - 11 * math.cos(angle + d), y2 - 11 * math.sin(angle + d)) for d in (0.45, -0.45)
+        ]
+        bx, by = x2 - 9 * math.cos(angle), y2 - 9 * math.sin(angle)
+        points = " ".join(f"{px:.1f},{py:.1f}" for px, py in tip)
+        return (
+            f'  <path d="M{x1} {y1}L{bx:.1f} {by:.1f}" stroke="{colour}" stroke-width="2"'
+            ' fill="none"/>\n'
+            f'  <polygon points="{points}" fill="{colour}"/>\n'
+        )
+
+    for theme, c in ARCH_THEMES.items():
+        # An opaque background keeps every label readable if a viewer shows the other variant.
+        parts = [f'  <rect width="{width}" height="{height}" rx="12" fill="{c["page"]}"/>\n']
+        for x, y, title, lines in ARCH_BOXES:
+            parts.append(
+                f'  <rect x="{x}" y="{y}" width="{box_w}" height="{box_h}" rx="10" '
+                f'fill="{c["fill"]}" stroke="{c["line"]}" stroke-width="1.5"/>\n'
+            )
+            parts.append(words(semi, title, 22, x + 16, y + 37, c["ink"], limit=x + box_w - 10))
+            for n, line in enumerate(lines):
+                parts.append(
+                    words(regular, line, 17.5, x + 16, y + 64 + 23 * n, c["muted"],
+                          limit=x + box_w - 10)
+                )  # fmt: skip
+        parts.append(
+            f'  <rect x="110" y="156" width="340" height="88" rx="12" fill="{c["fill"]}" '
+            f'stroke="{c["accent"]}" stroke-width="2.5"/>\n'
+            f'  <g transform="translate(128,176) scale(0.75)">\n'
+            f'    <path fill="{c["ink"]}" fill-rule="evenodd" d="{MARK_PATH}"/>\n'
+            f'    <rect x="43" y="47" width="12" height="12" rx="3" fill="{c["accent"]}"/>\n'
+            "  </g>\n"
+        )
+        parts.append(words(semi, "PlanLens", 24, 188, 194, c["ink"], limit=440))
+        parts.append(words(regular, "checks the plan before it runs", 17.5, 188, 222,
+                           c["muted"], limit=440))  # fmt: skip
+        parts.append(arrow(135, 106, 228, 152, c["muted"]))
+        parts.append(arrow(425, 106, 332, 152, c["muted"]))
+        parts.append(arrow(228, 246, 135, 316, c["ink"]))
+        parts.append(arrow(332, 246, 425, 316, c["accent"]))
+        parts.append(words(regular, "pass · exit 0", 17, 8, 288, c["ink"], limit=150))
+        parts.append(words(regular, "reject · exit 1", 17, 0, 276, c["ink"], right=552))
+        parts.append(words(regular, "invalid · exit 2", 17, 0, 299, c["ink"], right=552))
+        (MEDIA / f"architecture-{theme}.svg").write_text(
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
+            f'width="{width}" height="{height}"\n     role="img" aria-label="{ARCH_LABEL}">\n'
+            + "".join(parts)
+            + "</svg>\n"
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--chrome", default=CHROME)
+    parser.add_argument(
+        "--only", action="append", choices=BUILDERS,
+        help="rebuild only these outputs (repeatable); default: everything",
+    )  # fmt: skip
     args = parser.parse_args()
+    only = set(args.only or BUILDERS)
     MEDIA.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="planlens-media-") as directory:
         tmp = Path(directory).resolve()
         fonts = fetch_fonts(tmp)
         report, out = capture(tmp)
-        build_brand(fonts)
+        if "brand" in only:
+            build_brand(fonts)
+        if "architecture" in only:
+            build_architecture(fonts)
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(executable_path=args.chrome)
-            build_walkthrough(fonts, out, report, browser, tmp)
-            build_inspector(report, browser)
-            build_finding_crops(report, browser)
-            build_social(fonts, out, browser, tmp)
+            if "walkthrough" in only:
+                build_walkthrough(fonts, out, report, browser, tmp)
+            if "inspector" in only:
+                build_inspector(report, browser)
+                build_finding_crops(report, browser)
+            if "social" in only:
+                build_social(fonts, out, browser, tmp)
+            if "capabilities" in only:
+                build_capabilities(fonts, out, browser, tmp)
             browser.close()
     for path in sorted([*MEDIA.iterdir(), *BRAND.glob("*.svg")]):
         print(path.name, path.stat().st_size, "bytes")
