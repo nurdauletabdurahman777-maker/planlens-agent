@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+Documentation and repository presentation only. The package, its checker semantics and its dependencies are
+unchanged, and no release is made.
+
+- The README gains a live CI badge and badges for the PyPI version, Python 3.11+ and Apache-2.0, a capability
+  table, real visuals of the Inspector, a suite comparison and the execution gate, and a small diagram of where
+  PlanLens sits.
+- `SECURITY.md` and `CODE_OF_CONDUCT.md` name the maintainer's LinkedIn profile as the private contact.
+- `scripts/make_demo_media.py` generates the new visuals from the installed package, writes their complete
+  output to `docs/media/capabilities-transcript.txt`, and accepts `--only` to rebuild selected outputs.
+- `.claude/settings.json` turns off Claude Code's automatic commit and pull request attribution for this
+  repository.
+
 ## 0.1.0 - first public release
 
 Changed
